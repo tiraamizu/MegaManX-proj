@@ -48,6 +48,19 @@ The template starts out very basic, but might receive additional features over t
    cmake --build build
    ```
 
+## Portability checklist
+
+1. Build in an out-of-source directory:
+   ```
+   mkdir -p build
+   cmake -B build -S .
+   cmake --build build --config Release
+   ```
+2. Keep generated files out of Git (already in `.gitignore`: `build/`, `.vs/`, `.vscode/`).
+3.  Avoid absolute paths in code/config; use relative paths for assets (e.g. `fonts/`, `assets/`).
+4.  SFML dependency is fetched via CMake `FetchContent`, so other machines get it automatically.
+5.  On Windows use the build config in your IDE; on Linux/macOS use `-DCMAKE_BUILD_TYPE=Debug/Release`.
+
 9. Enjoy!
 
 ### Visual Studio

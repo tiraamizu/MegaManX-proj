@@ -5,9 +5,9 @@
 
 using namespace sf;
 
-class menu
+struct menu
 {
-public:
+	public:
 	menu(float width, float height);
 	~menu();
 
@@ -17,15 +17,15 @@ public:
 	int ReturnButtonIndex() {
 		return curButtonIndex;
 	}
-protected:
+	protected:
 	int curButtonIndex;
 	int curMaxButtons;
 	Font font;
 	Text menuSelection[MAX_ITEM_NO];
 };
-class options : public menu
+struct options :  menu
 {
-public:
+	public:
 	options(float width, float height);
 	~options() {};
 

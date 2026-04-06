@@ -67,7 +67,7 @@ void down(MenuData &m) {
 }
 
 void initOptions(MenuData &m, float width, float height) {
-    // We call the base init first to setup fonts/positions (replacing inheritance)
+    // we use initMenu to copy data from the menu struct and reuse it in options.
     initMenu(m, width, height);
 
     m.curMaxButtons = 3;

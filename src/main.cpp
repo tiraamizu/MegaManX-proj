@@ -11,7 +11,7 @@
 using namespace std;
 using namespace sf;
 
-enum GameState { MAIN, OPTIONS, GAME };
+enum GameState { MAIN, OPTIONS, GAME};
 
 int main()
 {
@@ -22,10 +22,12 @@ int main()
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
 
     //Menu stuff (will add sub-menus like options and PASS WORRD stuff later)
-    menu menu(window.getSize().x, window.getSize().y);
+    MenuData mainMenu;
+    initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y);
 
     //Options
-    options options(window.getSize().x, window.getSize().y);
+    MenuData optionsMenu;
+    initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y);
 
     //Game
 
@@ -42,25 +44,27 @@ int main()
     {
         while (window.pollEvent(event))
         {
-            // should try out switch case for cleaner code
+            if (event.type == Event::Closed)
+                window.close();
+
             if (event.type == Event::KeyPressed) {
                 switch (curState)
                 {
                 case MAIN:
                     if (event.key.code == Keyboard::Up) {
-                        menu.up();
+                        up(mainMenu);
                     }
                     if (event.key.code == Keyboard::Down) {
-                        menu.down();
+                        down(mainMenu);
                     }
                     if (event.key.code == interractionButton) {
-                        if (menu.ReturnButtonIndex() == 0) {
+                        if (mainMenu.curButtonIndex == 0) {
                             curState = GAME;
                         }
-                        if (menu.ReturnButtonIndex() == 2) {
+                        if (mainMenu.curButtonIndex == 2) {
                             curState = OPTIONS;
                         }
-                        if (menu.ReturnButtonIndex() == 3) {
+                        if (mainMenu.curButtonIndex == 3) {
                             window.close();
                         }
                     }
@@ -68,13 +72,13 @@ int main()
 
                 case OPTIONS:
                     if (event.key.code == Keyboard::Up) {
-                        options.up();
+                        up(optionsMenu);
                     }
                     if (event.key.code == Keyboard::Down) {
-                        options.down();
+                        down(optionsMenu);
                     }
                     if (event.key.code == interractionButton) {
-                        if (options.ReturnButtonIndex() == 2) {
+                        if (optionsMenu.curButtonIndex == 2) {
                             curState = MAIN;
                         }
                     }
@@ -93,9 +97,6 @@ int main()
                     break;
                 }
             }
-
-            if (event.type == Event::Closed)
-                window.close();
         }
 
         window.clear();
@@ -103,11 +104,11 @@ int main()
         switch (curState)
         {
         case MAIN:
-            menu.draw(window);
+            drawMenu(mainMenu, window);
             break;
 
         case OPTIONS:
-            options.draw(window);
+            drawMenu(optionsMenu, window);
             break;
 
         case GAME:

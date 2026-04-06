@@ -1,32 +1,20 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 
-#define MAX_ITEM_NO 4
-
 using namespace sf;
 
-struct menu
-{
-	public:
-	menu(float width, float height);
-	~menu();
+#define MAX_ITEM_NO 10
 
-	void draw(sf::RenderWindow& window);
-	void up();
-	void down();
-	int ReturnButtonIndex() {
-		return curButtonIndex;
-	}
-	protected:
-	int curButtonIndex;
-	int curMaxButtons;
-	Font font;
-	Text menuSelection[MAX_ITEM_NO];
+struct MenuData {
+    Font font;
+    Text menuSelection[MAX_ITEM_NO];
+    int curMaxButtons;
+    int curButtonIndex;
 };
-struct options :  menu
-{
-	public:
-	options(float width, float height);
-	~options() {};
 
-};
+// Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
+void initMenu(MenuData &m, float width, float height);
+void initOptions(MenuData &m, float width, float height);
+void drawMenu(MenuData &m, RenderWindow &window);
+void up(MenuData &m);
+void down(MenuData &m);

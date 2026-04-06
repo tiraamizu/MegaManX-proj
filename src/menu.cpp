@@ -1,77 +1,82 @@
 #include "Menu.h"
 #include <iostream>
+
 using namespace std;
-int charSize = 20, xOffset = 1, yOffset = 220;
-menu::menu(float width, float height) {
-	if (!font.loadFromFile("fonts/mega-man-x.ttf")) {
-		cout << "Font not found";
-	}
-	curMaxButtons = 4;
-	//GAME START
-	menuSelection[0].setFont(font);
-	menuSelection[0].setFillColor(Color::Yellow);
-	menuSelection[0].setString("GAME START");
-	menuSelection[0].setCharacterSize(charSize);
-	menuSelection[0].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1) + yOffset);
-	//PASS WORD
-	menuSelection[1].setFont(font);
-	menuSelection[1].setFillColor(Color::Cyan);
-	menuSelection[1].setString("PASS WORD");
-	menuSelection[1].setCharacterSize(charSize);
-	menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1.25) + yOffset);
-	//OPTION MODE
-	menuSelection[2].setFont(font);
-	menuSelection[2].setFillColor(Color::Cyan);
-	menuSelection[2].setString("OPTION MODE");
-	menuSelection[2].setCharacterSize(charSize);
-	menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1.5) + yOffset);
-	//TERMINATE
-	menuSelection[3].setFont(font);
-	menuSelection[3].setFillColor(Color::Cyan);
-	menuSelection[3].setString("TERMINATE");
-	menuSelection[3].setCharacterSize(charSize);
-	menuSelection[3].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1.75) + yOffset);
 
-	//Variable for checking selected button
-	curButtonIndex = 0;
+int charSize = 20, xOffset = -100, yOffset = 270;
+
+void initMenu(MenuData &m, float width, float height) {
+    if (!m.font.loadFromFile("fonts/mega-man-x.ttf")) {
+        cout << "Font not found";
+    }
+    m.curMaxButtons = 4;
+
+    //GAME START
+    m.menuSelection[0].setFont(m.font);
+    m.menuSelection[0].setFillColor(Color::Yellow);
+    m.menuSelection[0].setString("GAME START");
+    m.menuSelection[0].setCharacterSize(charSize);
+    m.menuSelection[0].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1) + yOffset);
+
+    //PASS WORD
+    m.menuSelection[1].setFont(m.font);
+    m.menuSelection[1].setFillColor(Color::Cyan);
+    m.menuSelection[1].setString("PASS WORD");
+    m.menuSelection[1].setCharacterSize(charSize);
+    m.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1.5) + yOffset);
+
+    //OPTION MODE
+    m.menuSelection[2].setFont(m.font);
+    m.menuSelection[2].setFillColor(Color::Cyan);
+    m.menuSelection[2].setString("OPTION MODE");
+    m.menuSelection[2].setCharacterSize(charSize);
+    m.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 2) + yOffset);
+
+    //TERMINATE
+    m.menuSelection[3].setFont(m.font);
+    m.menuSelection[3].setFillColor(Color::Cyan);
+    m.menuSelection[3].setString("TERMINATE");
+    m.menuSelection[3].setCharacterSize(charSize);
+    m.menuSelection[3].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 2.5) + yOffset);
+
+    m.curButtonIndex = 0;
 }
-menu::~menu() {
 
+void drawMenu(MenuData &m, RenderWindow &window) {
+    for (int i = 0; i < m.curMaxButtons; ++i) {
+        window.draw(m.menuSelection[i]);
+    }
 }
-	//Draw menu
-	void menu::draw(RenderWindow & window) {
-		for (int i = 0; i < curMaxButtons; ++i) {
-			window.draw(menuSelection[i]);
-		}
-	}
-	void menu::up() {
-		menuSelection[curButtonIndex].setFillColor(Color::Cyan);
-		curButtonIndex--;
-		if (curButtonIndex < 0) {
-			curButtonIndex = curMaxButtons - 1;
-		}
-		menuSelection[curButtonIndex].setFillColor(Color::Yellow);
-	}
-	void menu::down() {
-		menuSelection[curButtonIndex].setFillColor(Color::Cyan);
-		curButtonIndex++;
-		if (curButtonIndex >= curMaxButtons) {
-			curButtonIndex = 0;
-		}
-		menuSelection[curButtonIndex].setFillColor(Color::Yellow);
-		
-	}
 
+void up(MenuData &m) {
+    m.menuSelection[m.curButtonIndex].setFillColor(Color::Cyan);
+    m.curButtonIndex--;
+    if (m.curButtonIndex < 0) {
+        m.curButtonIndex = m.curMaxButtons - 1;
+    }
+    m.menuSelection[m.curButtonIndex].setFillColor(Color::Yellow);
+}
 
-	options::options(float width, float height) : menu(width, height) {
-		curMaxButtons = 3;
-		//CONTROLS
-		menuSelection[0].setString("CONTROLS");
-		//AUDIO
-		menuSelection[1].setString("AUDIO");
-		//BACK
-		menuSelection[2].setString("BACK");
+void down(MenuData &m) {
+    m.menuSelection[m.curButtonIndex].setFillColor(Color::Cyan);
+    m.curButtonIndex++;
+    if (m.curButtonIndex >= m.curMaxButtons) {
+        m.curButtonIndex = 0;
+    }
+    m.menuSelection[m.curButtonIndex].setFillColor(Color::Yellow);
+}
 
-		//Variable for checking selected button
-		curButtonIndex = 0;
-	}
+void initOptions(MenuData &m, float width, float height) {
+    // We call the base init first to setup fonts/positions (replacing inheritance)
+    initMenu(m, width, height);
+
+    m.curMaxButtons = 3;
+    //CONTROLS
+    m.menuSelection[0].setString("CONTROLS");
+    //AUDIO
+    m.menuSelection[1].setString("AUDIO");
+    //BACK
+    m.menuSelection[2].setString("BACK");
+
+    m.curButtonIndex = 0;
+}

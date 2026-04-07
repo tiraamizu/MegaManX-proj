@@ -32,7 +32,6 @@ FetchContent_MakeAvailable(SFML)
 
 add_executable(main 
     src/main.cpp
-    src/menu.cpp
 )
 
 target_compile_features(main PRIVATE cxx_std_17)

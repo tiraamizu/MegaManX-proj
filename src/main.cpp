@@ -23,11 +23,11 @@ int main()
 
     //Menu stuff (will add sub-menus like options and PASS WORRD stuff later)
     MenuData mainMenu;
-    initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu
+    initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y);
 
     //Options
     MenuData optionsMenu;
-    initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes options menu
+    initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y);
 
     //Game
 
@@ -105,9 +105,6 @@ int main()
         {
         case MAIN:
             drawMenu(mainMenu, window);
-            if(!logoCheck(mainMenu,window)){
-                return 0;
-            }; //crashes program to stop message from looping if logo is not found
             break;
 
         case OPTIONS:

@@ -118,7 +118,7 @@ int charSize = 20, xOffset = -100, yOffset = 270;
 
 //Initializes main menu
 bool logoCheck(MenuData &m, RenderWindow &window) {
-    if (!m.Logo.loadFromFile("C:/project/MegaManX-proj/textures/logo.png") || !m.XLogo.loadFromFile("C:/project/MegaManX-proj/textures/XLogo.png")) {
+    if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
     }

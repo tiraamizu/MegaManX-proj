@@ -25,16 +25,8 @@ struct MenuData {
     Color selectedColor = sf::Color(234, 138, 13);
     Texture Logo, XLogo;
     Sprite logoSprite, XLogoSprite;
-    GameState curState = MAIN;
+    GameState curState = MAIN; // State logic is now tied to the menu data
 };
-
-struct StateSwitchData {
-    GameState curState;
-    MenuData mainMenu;
-    MenuData optionsMenu;
-};
-
-StateSwitchData ssv; //state switch variable
 
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
@@ -44,8 +36,8 @@ void initOptions(MenuData &m, float width, float height);
 void drawMenuSelection(MenuData &m, RenderWindow &window);
 void up(MenuData &m);
 void down(MenuData &m);
-void menuSwitchHandler(RenderWindow &window, Event &event, StateSwitchData &ssv, Keyboard::Key interractionButton);
-bool logoCheck(MenuData &m, RenderWindow &window);
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, Keyboard::Key interractionButton);
+bool resourcesCheck(MenuData &m, RenderWindow &window);
 
 //2
 int main()
@@ -56,11 +48,19 @@ int main()
 
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
 
+    MenuData mainMenu;
+    MenuData optionsMenu;
+
+    // Load resources for both menus
+    if (!resourcesCheck(mainMenu, window) || !resourcesCheck(optionsMenu, window)) {
+        return 0;
+    }; //crashes program to stop message from looping if logo is not found
+
     //Menu stuff (will add sub-menus like options and PASS WORRD stuff later)
-    initMenu(ssv.mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu
+    initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu
 
     //Options
-    initOptions(ssv.optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes options menu
+    initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes options menu
 
     //Game
 
@@ -78,30 +78,34 @@ int main()
             if (event.type == Event::Closed) {
                 window.close();
             }
-            menuSwitchHandler(window, event, ssv, interractionButton);
+            menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
 
         window.clear();
 
-        switch (ssv.mainMenu.curState)
+        // Use mainMenu.curState to determine which menu to draw
+        switch (mainMenu.curState)
         {
         case MAIN:
-            drawMenuSelection(ssv.mainMenu, window);
-            if (!logoCheck(ssv.mainMenu, window)) {
-                return 0;
-            }; //crashes program to stop message from looping if logo is not found
+            window.draw(mainMenu.XLogoSprite);
+            window.draw(mainMenu.logoSprite); //draws logo
+            drawMenuSelection(mainMenu, window);
             break;
 
         case OPTIONS:
-            drawMenuSelection(ssv.optionsMenu, window);
+            drawMenuSelection(optionsMenu, window);
             break;
 
         case GAME:
+            if (event.key.code == Keyboard::X) {
+                mainMenu.curState = MAIN;
+            }
             window.clear();
             break;
+            //events of game go here
 
         default:
-            ssv.mainMenu.curState = MAIN;
+            mainMenu.curState = MAIN;
             break;
         }
 
@@ -112,31 +116,28 @@ int main()
 
 //FUNCTION DEFINITIONS  
 
-//Functions for menu navigation and drawing. These functions are used to initialize the menu, draw the menu to the window, and handle up/down navigation through the menu options. The logoCheck function is used to load and display the logos on the main menu, and it returns false if the logos cannot be found, which is used to prevent an infinite loop of error messages in the main function.
-
 int charSize = 20, xOffset = -100, yOffset = 270;
 
-//Initializes main menu
-bool logoCheck(MenuData &m, RenderWindow &window) {
+//Initializes main menu resources
+bool resourcesCheck(MenuData &m, RenderWindow &window) {
     if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
     }
-        m.XLogoSprite.setTexture(m.XLogo);
-        m.XLogoSprite.setPosition(320, 130);
-        m.XLogoSprite.setScale(1.5f, 1.5f);
-        m.logoSprite.setTexture(m.Logo);
-        m.logoSprite.setPosition(150, 130);
-        m.logoSprite.setScale(1.5f, 1.5f);
-    window.draw(m.XLogoSprite);
-    window.draw(m.logoSprite);
+    if (!m.font.loadFromFile("fonts/mega-man-x.ttf")) {
+        cout << "ERR : Font not found";
+        return false;
+    }
+    m.XLogoSprite.setTexture(m.XLogo);
+    m.XLogoSprite.setPosition(320, 130);
+    m.XLogoSprite.setScale(1.5f, 1.5f);
+    m.logoSprite.setTexture(m.Logo);
+    m.logoSprite.setPosition(150, 130);
+    m.logoSprite.setScale(1.5f, 1.5f);
     return true;
 }
 
 void initMenu(MenuData &m, float width, float height) {
-    if (!m.font.loadFromFile("fonts/mega-man-x.ttf")) {
-        cout << "ERR : Font not found";
-    }
     m.curMaxButtons = 4;
 
     //GAME START
@@ -213,25 +214,25 @@ void initOptions(MenuData &m, float width, float height) {
     m.curButtonIndex = 0;
 }
 
-void menuSwitchHandler(RenderWindow &window, Event &event, StateSwitchData &ssv, Keyboard::Key interractionButton) {
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, Keyboard::Key interractionButton) {
     if (event.type == Event::KeyPressed) {
-        switch (ssv.mainMenu.curState)
+        switch (main.curState)
         {
         case MAIN:
             if (event.key.code == Keyboard::Up) {
-                up(ssv.mainMenu);
+                up(main);
             }
             if (event.key.code == Keyboard::Down) {
-                down(ssv.mainMenu);
+                down(main);
             }
             if (event.key.code == interractionButton) {
-                if (ssv.mainMenu.curButtonIndex == 0) {
-                    ssv.mainMenu.curState = GAME;
+                if (main.curButtonIndex == 0) {
+                    main.curState = GAME;
                 }
-                if (ssv.mainMenu.curButtonIndex == 2) {
-                    ssv.mainMenu.curState = OPTIONS;
+                if (main.curButtonIndex == 2) {
+                    main.curState = OPTIONS;
                 }
-                if (ssv.mainMenu.curButtonIndex == 3) {
+                if (main.curButtonIndex == 3) {
                     window.close();
                 }
             }
@@ -239,25 +240,21 @@ void menuSwitchHandler(RenderWindow &window, Event &event, StateSwitchData &ssv,
 
         case OPTIONS:
             if (event.key.code == Keyboard::Up) {
-                up(ssv.optionsMenu);
+                up(options);
             }
             if (event.key.code == Keyboard::Down) {
-                down(ssv.optionsMenu);
+                down(options);
             }
             if (event.key.code == interractionButton) {
-                if (ssv.optionsMenu.curButtonIndex == 2) {
-                    ssv.mainMenu.curState = MAIN;
+                if (options.curButtonIndex == 2) {
+                    main.curState = MAIN;
                 }
             }
             break;
 
         case GAME:
-            // put game events in here (like player movement and stuff)
-            // temp solution for entering the game (press X to return to menu)
-            // make a function to handle inputs for easier management
-            // also gotta make an ingame menu somehow for ingame stuff
             if (event.key.code == Keyboard::X) {
-                ssv.mainMenu.curState = MAIN;
+                main.curState = MAIN;
             }
             break;
 

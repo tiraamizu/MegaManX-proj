@@ -25,7 +25,7 @@ struct MenuData {
     Color selectedColor = sf::Color(234, 138, 13);
     Texture Logo, XLogo;
     Sprite logoSprite, XLogoSprite;
-    GameState curState = MAIN; // State logic is now tied to the menu data
+    GameState curState = MAIN;
 };
 
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
@@ -101,8 +101,9 @@ int main()
                 mainMenu.curState = MAIN;
             }
             window.clear();
-            break;
             //events of game go here
+            break;
+            
 
         default:
             mainMenu.curState = MAIN;
@@ -214,25 +215,25 @@ void initOptions(MenuData &m, float width, float height) {
     m.curButtonIndex = 0;
 }
 
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, Keyboard::Key interractionButton) {
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton) {
     if (event.type == Event::KeyPressed) {
-        switch (main.curState)
+        switch (m.curState)
         {
         case MAIN:
             if (event.key.code == Keyboard::Up) {
-                up(main);
+                up(m);
             }
             if (event.key.code == Keyboard::Down) {
-                down(main);
+                down(m);
             }
             if (event.key.code == interractionButton) {
-                if (main.curButtonIndex == 0) {
-                    main.curState = GAME;
+                if (m.curButtonIndex == 0) {
+                    m.curState = GAME;
                 }
-                if (main.curButtonIndex == 2) {
-                    main.curState = OPTIONS;
+                if (m.curButtonIndex == 2) {
+                    m.curState = OPTIONS;
                 }
-                if (main.curButtonIndex == 3) {
+                if (m.curButtonIndex == 3) {
                     window.close();
                 }
             }
@@ -247,14 +248,14 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
             }
             if (event.key.code == interractionButton) {
                 if (options.curButtonIndex == 2) {
-                    main.curState = MAIN;
+                    m.curState = MAIN;
                 }
             }
             break;
 
         case GAME:
             if (event.key.code == Keyboard::X) {
-                main.curState = MAIN;
+                m.curState = MAIN;
             }
             break;
 

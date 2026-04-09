@@ -37,7 +37,12 @@ void drawMenuSelection(MenuData &m, RenderWindow &window);
 void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
-bool resourcesCheck(MenuData &m, RenderWindow &window);
+bool resourcesCheck(MenuData &m);
+
+/*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
+THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
+NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainMenu AND optionsMenu.
+*/
 
 //2
 int main()
@@ -52,15 +57,16 @@ int main()
     MenuData optionsMenu;
 
     // Load resources for both menus
-    if (!resourcesCheck(mainMenu, window) || !resourcesCheck(optionsMenu, window)) {
+    if (!resourcesCheck(mainMenu) || !resourcesCheck(optionsMenu)) {
         return 0;
-    }; //crashes program to stop message from looping if logo is not found
+        //crashes program to stop messages (in resourcesCheck) from looping if logo is not found
+    };
 
     //Menu stuff (will add sub-menus like options and PASS WORRD stuff later)
-    initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu
+    initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu in 1st argument, 2nd and 3rd arguments are used for calculations regarding positions of menu items.
 
     //Options
-    initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes options menu
+    initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //same as initMenu but for options menu.
 
     //Game
 
@@ -120,7 +126,7 @@ int main()
 int charSize = 20, xOffset = -100, yOffset = 270;
 
 //Initializes main menu resources
-bool resourcesCheck(MenuData &m, RenderWindow &window) {
+bool resourcesCheck(MenuData &m) {
     if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
@@ -137,7 +143,7 @@ bool resourcesCheck(MenuData &m, RenderWindow &window) {
     m.logoSprite.setScale(1.5f, 1.5f);
     return true;
 }
-
+//Initializes main menu (note: we pass width and height by value bc we are using them for a calculation, no need to mod them.)
 void initMenu(MenuData &m, float width, float height) {
     m.curMaxButtons = 4;
 
@@ -215,25 +221,27 @@ void initOptions(MenuData &m, float width, float height) {
     m.curButtonIndex = 0;
 }
 
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton) {
+//main is a placeholder for mainmenu, options is a placeholder for options menu.
+//this function handles switching between menus and the game, it also handles the menu interraction button (Z in this case) for both menus and the game.
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, Keyboard::Key interractionButton) {
     if (event.type == Event::KeyPressed) {
-        switch (m.curState)
+        switch (main.curState)
         {
         case MAIN:
             if (event.key.code == Keyboard::Up) {
-                up(m);
+                up(main);
             }
             if (event.key.code == Keyboard::Down) {
-                down(m);
+                down(main);
             }
             if (event.key.code == interractionButton) {
-                if (m.curButtonIndex == 0) {
-                    m.curState = GAME;
+                if (main.curButtonIndex == 0) {
+                    main.curState = GAME;
                 }
-                if (m.curButtonIndex == 2) {
-                    m.curState = OPTIONS;
+                if (main.curButtonIndex == 2) {
+                    main.curState = OPTIONS;
                 }
-                if (m.curButtonIndex == 3) {
+                if (main.curButtonIndex == 3) {
                     window.close();
                 }
             }
@@ -248,14 +256,14 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData
             }
             if (event.key.code == interractionButton) {
                 if (options.curButtonIndex == 2) {
-                    m.curState = MAIN;
+                    main.curState = MAIN;
                 }
             }
             break;
 
         case GAME:
             if (event.key.code == Keyboard::X) {
-                m.curState = MAIN;
+                main.curState = MAIN;
             }
             break;
 

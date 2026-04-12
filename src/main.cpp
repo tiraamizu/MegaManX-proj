@@ -84,7 +84,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 int main()
 {
     int i = 0;
-    
+
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
 
     MenuData mainMenu;
@@ -124,7 +124,7 @@ int main()
                 window.close();
             }
             if(event.key.code == Keyboard::Space) {
-                playerst.megamanSpr.move(0, -0.1);
+                playerst.megamanSpr.move(0, -10);
                 playerst.moving = true;
             }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);

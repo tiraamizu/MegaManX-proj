@@ -48,16 +48,15 @@ struct player
 	bool moving;
 		
 } playerst;
+struct bullet
+{
+    CircleShape shape;
+    float speed =5.f ;
+    int direction = 1;
+    bool isthere = false;
 
-//bullet practice struct
+};
 
-// struct bullet
-// {
-// 	CircleShape bullet;
-// 	float speed = 10.f;
-// 	int direction = 1; 
-
-// };
 
 
 //bullet practice struct
@@ -85,7 +84,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 int main()
 {
     int i = 0;
-
+    
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
 
     MenuData mainMenu;

@@ -24,8 +24,8 @@ struct MenuData {
     Text menuSelection[MAX_ITEM_NO];
     int curMaxButtons;
     int curButtonIndex;
-    Color unselectedColor = sf::Color(83, 227, 255);
-    Color selectedColor = sf::Color(234, 138, 13);
+    Color unselectedColor = Color(83, 227, 255);
+    Color selectedColor = Color(234, 138, 13);
     Texture Logo, XLogo;
     Sprite logoSprite, XLogoSprite;
     GameState curState = MAIN;
@@ -47,7 +47,7 @@ struct player
 	int i = 0; // our frame counter
 	bool moving;
 		
-} p;
+} playerst;
 
 //bullet practice struct
 
@@ -106,8 +106,8 @@ int main()
     //Game
 	float dt; // delta time and clock for the whole game loop
 	Clock clock;
-	player megaman;// creating our megaman with the struct stats
-	playerstats(megaman); //assigning the texture and sprites to megaman
+	// creating our megaman with the struct stats
+	playerstats(playerst); //assigning the texture and sprites to megaman
 
     //Password
     // (TBD)
@@ -125,8 +125,8 @@ int main()
                 window.close();
             }
             if(event.key.code == Keyboard::Space) {
-                p.megamanSpr.move(0, -0.1);
-                p.moving = true;
+                playerst.megamanSpr.move(0, -0.1);
+                playerst.moving = true;
             }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
@@ -151,9 +151,9 @@ int main()
                 mainMenu.curState = MAIN;
             }
             window.clear();
-            window.draw(megaman.megamanSpr);
-            animationhandler(megaman, dt);
-            inputhandler(megaman, dt);
+            window.draw(playerst.megamanSpr);
+            animationhandler(playerst, dt);
+            inputhandler(playerst, dt);
 
             //events of game go here
             break;
@@ -322,67 +322,67 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 }
 
 //~~~~~~~~~~~~~~intialize !!megaman texture and sprite function~~~~~~~~~~~~~~~~~~~~~~
-void playerstats(player& p) // p for better writing :D
+void playerstats(player& playerst) // p for better writing :D
 {
-	p.megamanTexture.loadFromFile("textures/shit.jpeg");
-	p.megamanSpr.setTexture(p.megamanTexture); //assigning the texture to the sprite so that we can use it in the game loop
-	p.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
-	p.megamanSpr.setScale(2.0f, 2.0f);
-	p.megamanSpr.setTextureRect(IntRect(0, 0, p.framewidth, p.frameheight));//start with the first frame of the sprite sheet
+	playerst.megamanTexture.loadFromFile("textures/shit.jpeg");
+	playerst.megamanSpr.setTexture(playerst.megamanTexture); //assigning the texture to the sprite so that we can use it in the game loop
+	playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+	playerst.megamanSpr.setScale(2.0f, 2.0f);  
+	playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));//start with the first frame of the sprite sheet
 	//note we will change this if we want to make a standing animation
-	p.megamanSpr.setOrigin(p.framewidth	 / 2.0f, p.frameheight / 2.0f);	
+	playerst.megamanSpr.setOrigin(playerst.framewidth	 / 2.0f, playerst.frameheight / 2.0f);	
 }
 //~~~~~~~~~~~~~~~megaman buttons and input handler~~~~~~~~~~~~~~~~~~~~~~
-void inputhandler(player& p, float dt)
+void inputhandler(player& playerst, float dt)
 {
-	p.moving = false;
+	playerst.moving = false;
 
 	if (Keyboard::isKeyPressed(Keyboard::Right))
 	{
-		p.megamanSpr.move(p.speed * dt, 0);// to calculate distance moved for each frame
-		p.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want
+		playerst.megamanSpr.move(playerst.speed * dt, 0);// to calculate distance moved for each frame
+		playerst.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want
 		// note the ngeative direction changes based on the TEXTURE direction which we implemented
-		p.moving = true;
+		playerst.moving = true;
 	}
-	if (Keyboard::isKeyPressed(Keyboard::Left))
+	else if (Keyboard::isKeyPressed(Keyboard::Left))
 	{
 		//distance covered
-		p.megamanSpr.move(-p.speed * dt, 0);
-		p.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
-		p.moving = true;
+		playerst.megamanSpr.move(-playerst.speed * dt, 0);
+		playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
+		playerst.moving = true;
 	}
 	else
 		// this condition is made only when the button isn't clicked we conclude that the character is idle and not moving
 		// so we resets the frames and the timer to start again whenever the player click the bottun:D
 	{
 
-		p.i = 0;
-		p.timer = 0.0f;
+		playerst.i = 0;
+		playerst.timer = 0.0f;
 	}
 
 }
 //~~~~~~~~~~~~~~~~megaman frames and deltatime handler~~~~~~~~~~~~~~~~~~~~~~
-void animationhandler(player& p, float dt)
+void animationhandler(player& playerst, float dt)
 {
-	if (p.moving)//this if condition is wrote so that when the player click any movement botton the code reads it so that the 
+	if (playerst.moving)//this if condition is wrote so that when the player click any movement botton the code reads it so that the 
 		// frames update
 	{
-		p.timer += dt; // this line add the  fraction of time we pressed on the button to our timer so
+	    playerst.timer += dt; // this line add the  fraction of time we pressed on the button to our timer so
 		//that each frame update is presicely know or determined according to our frame duration constant
 		// btw we assinged the timer to be each 0.0f this means it will act as a real timer and reads every 0.1 s the player
 		// click on the button
 
 
-		if (p.timer >= p.frameduration)// this condition is only made for the time being because since we only now have 6 frmaes 
+		if (playerst.timer >= playerst.frameduration)// this condition is only made for the time being because since we only now have 6 frmaes 
 			// and each frame frameduartion of 0.1 , this means that each time the timer goes up by 0.1 the the frame is updated 
 			// and the game loop after 0.1 s will display the new frame and in out case since we only have 6 frames then after
 			// each 0.6 s the frame loop resets  and that's what this condition is saying :DD
 		{
-			p.timer = 0;
-			p.i++;
-			if (p.i >= 6)
-				p.i = 0;
-			p.megamanSpr.setTextureRect(IntRect(p.i * p.framewidth, 0, p.framewidth, p.frameheight));
+			playerst.timer = 0;
+			playerst.i++;
+			if (playerst.i >= 6)
+				playerst.i = 0;
+			playerst.megamanSpr.setTextureRect(IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight));
 		}
 	}
 	

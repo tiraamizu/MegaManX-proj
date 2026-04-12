@@ -16,6 +16,9 @@ enum GameState { MAIN, OPTIONS, GAME };
 
 //STRUCTS
 
+//Main Window Resolution
+const int windowWidth = 640;
+const int windowHeight = 480;
 struct MenuData {
     Font font;
     Text menuSelection[MAX_ITEM_NO];
@@ -27,6 +30,37 @@ struct MenuData {
     Sprite logoSprite, XLogoSprite;
     GameState curState = MAIN;
 };
+//megaman struct
+struct player
+{
+	Texture megamanTexture;
+	Sprite megamanSpr;
+
+	float speed = 100.0f;
+	float frameduration = 0.09f;
+	float timer = 0.0f;
+	int sheet_width = 216; // sprite sheet height and width 
+	int sheet_height = 35;
+	int frame = 6;
+	int framewidth = sheet_width / frame; // each frame height and width don't ask how i calculated it 
+	int frameheight = sheet_height;
+	int i = 0; // our frame counter
+	bool moving;
+		
+} p;
+
+//bullet practice struct
+
+// struct bullet
+// {
+// 	CircleShape bullet;
+// 	float speed = 10.f;
+// 	int direction = 1; 
+
+// };
+
+
+//bullet practice struct
 
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
@@ -38,6 +72,9 @@ void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m);
+void playerstats(player& p);
+void inputhandler(player& p, float dt);
+void animationhandler(player& p, float dt);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
@@ -47,9 +84,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 //2
 int main()
 {
-    //Main Window Resolution
-    const int windowWidth = 640;
-    const int windowHeight = 480;
+    int i = 0;
 
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
 
@@ -69,6 +104,10 @@ int main()
     initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //same as initMenu but for options menu.
 
     //Game
+	float dt; // delta time and clock for the whole game loop
+	Clock clock;
+	player megaman;// creating our megaman with the struct stats
+	playerstats(megaman); //assigning the texture and sprites to megaman
 
     //Password
     // (TBD)
@@ -79,10 +118,15 @@ int main()
     Event event;
     while (window.isOpen())
     {
+        float dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
         {
             if (event.type == Event::Closed) {
                 window.close();
+            }
+            if(event.key.code == Keyboard::Space) {
+                p.megamanSpr.move(0, -0.1);
+                p.moving = true;
             }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
@@ -107,6 +151,10 @@ int main()
                 mainMenu.curState = MAIN;
             }
             window.clear();
+            window.draw(megaman.megamanSpr);
+            animationhandler(megaman, dt);
+            inputhandler(megaman, dt);
+
             //events of game go here
             break;
             
@@ -271,4 +319,71 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
             break;
         }
     }
+}
+
+//~~~~~~~~~~~~~~intialize !!megaman texture and sprite function~~~~~~~~~~~~~~~~~~~~~~
+void playerstats(player& p) // p for better writing :D
+{
+	p.megamanTexture.loadFromFile("textures/shit.jpeg");
+	p.megamanSpr.setTexture(p.megamanTexture); //assigning the texture to the sprite so that we can use it in the game loop
+	p.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+	p.megamanSpr.setScale(2.0f, 2.0f);
+	p.megamanSpr.setTextureRect(IntRect(0, 0, p.framewidth, p.frameheight));//start with the first frame of the sprite sheet
+	//note we will change this if we want to make a standing animation
+	p.megamanSpr.setOrigin(p.framewidth	 / 2.0f, p.frameheight / 2.0f);	
+}
+//~~~~~~~~~~~~~~~megaman buttons and input handler~~~~~~~~~~~~~~~~~~~~~~
+void inputhandler(player& p, float dt)
+{
+	p.moving = false;
+
+	if (Keyboard::isKeyPressed(Keyboard::Right))
+	{
+		p.megamanSpr.move(p.speed * dt, 0);// to calculate distance moved for each frame
+		p.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want
+		// note the ngeative direction changes based on the TEXTURE direction which we implemented
+		p.moving = true;
+	}
+	if (Keyboard::isKeyPressed(Keyboard::Left))
+	{
+		//distance covered
+		p.megamanSpr.move(-p.speed * dt, 0);
+		p.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
+		p.moving = true;
+	}
+	else
+		// this condition is made only when the button isn't clicked we conclude that the character is idle and not moving
+		// so we resets the frames and the timer to start again whenever the player click the bottun:D
+	{
+
+		p.i = 0;
+		p.timer = 0.0f;
+	}
+
+}
+//~~~~~~~~~~~~~~~~megaman frames and deltatime handler~~~~~~~~~~~~~~~~~~~~~~
+void animationhandler(player& p, float dt)
+{
+	if (p.moving)//this if condition is wrote so that when the player click any movement botton the code reads it so that the 
+		// frames update
+	{
+		p.timer += dt; // this line add the  fraction of time we pressed on the button to our timer so
+		//that each frame update is presicely know or determined according to our frame duration constant
+		// btw we assinged the timer to be each 0.0f this means it will act as a real timer and reads every 0.1 s the player
+		// click on the button
+
+
+		if (p.timer >= p.frameduration)// this condition is only made for the time being because since we only now have 6 frmaes 
+			// and each frame frameduartion of 0.1 , this means that each time the timer goes up by 0.1 the the frame is updated 
+			// and the game loop after 0.1 s will display the new frame and in out case since we only have 6 frames then after
+			// each 0.6 s the frame loop resets  and that's what this condition is saying :DD
+		{
+			p.timer = 0;
+			p.i++;
+			if (p.i >= 6)
+				p.i = 0;
+			p.megamanSpr.setTextureRect(IntRect(p.i * p.framewidth, 0, p.framewidth, p.frameheight));
+		}
+	}
+	
 }

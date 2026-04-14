@@ -6,120 +6,77 @@
 #include <string>
 #include <fstream>
 #include <iomanip>
-#include "Menu.h"
 
 using namespace std;
 using namespace sf;
+  const  int windowheight=800;
+  const  int windowwidth=800;
+   const float window_center_x=windowwidth/2;
+struct ball_test{
+   CircleShape circle;
+   float speed=350.f;
+   Vector2f tracker;
+   float timer=3.0f;
+   bool slowed=false;
+   void update_color(ball_test* ball){
+      if(ball->slowed==false){
+         ball->circle.setFillColor(Color::Red);
+      }
+      else{ball->circle.setFillColor(Color::Blue);}
+   }
+      void update_speed(ball_test* ball,float dt){
+      if(abs(ball->tracker.x-window_center_x)<10.f){
+         ball->slowed=true;
+         ball->timer=3;
+      }
+      if(ball->slowed==true && ball->timer>0){
+         ball->timer-=dt;
+         ball->speed=150;
+      }
+      else if(ball->timer<=0){
+         ball->slowed=false;
+         ball->speed=350;
+      }
 
-enum GameState { MAIN, OPTIONS, GAME };
+   }
+   
+};
 
-int main()
-{
-    //Main Window Resolution
-    const int windowWidth = 640;
-    const int windowHeight = 480;
 
-    RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
+int main(){
 
-    //Menu stuff (will add sub-menus like options and PASS WORRD stuff later)
-    menu menu(window.getSize().x, window.getSize().y);
+   ball_test test;
+   test.circle.setRadius(50);
+   Clock clock,cock;
 
-    //Options
-    options options(window.getSize().x, window.getSize().y);
+    RenderWindow window ={ VideoMode(windowwidth,windowheight), "sfml"};
 
-    //Game
-
-    //Password
-    // (TBD)
-    //Controls
-    Keyboard::Key interractionButton = Keyboard::Z;
-
-    //GameState
-    GameState curState = MAIN;
-
-    Event event;
-    while (window.isOpen())
-    {
-        while (window.pollEvent(event))
-        {
-            // should try out switch case for cleaner code
-            if (event.type == Event::KeyPressed) {
-                switch (curState)
-                {
-                case MAIN:
-                    if (event.key.code == Keyboard::Up) {
-                        menu.up();
-                    }
-                    if (event.key.code == Keyboard::Down) {
-                        menu.down();
-                    }
-                    if (event.key.code == interractionButton) {
-                        if (menu.ReturnButtonIndex() == 0) {
-                            curState = GAME;
-                        }
-                        if (menu.ReturnButtonIndex() == 2) {
-                            curState = OPTIONS;
-                        }
-                        if (menu.ReturnButtonIndex() == 3) {
-                            window.close();
-                        }
-                    }
-                    break;
-
-                case OPTIONS:
-                    if (event.key.code == Keyboard::Up) {
-                        options.up();
-                    }
-                    if (event.key.code == Keyboard::Down) {
-                        options.down();
-                    }
-                    if (event.key.code == interractionButton) {
-                        if (options.ReturnButtonIndex() == 2) {
-                            curState = MAIN;
-                        }
-                    }
-                    break;
-
-                case GAME:
-                    // temp solution for entering the game (press X to return to menu)
-                    // make a function to handle inputs for easier management
-                    // also gotta make an ingame menu somehow for ingame stuff
-                    if (event.key.code == Keyboard::X) {
-                        curState = MAIN;
-                    }
-                    break;
-
-                default:
-                    break;
-                }
-            }
-
-            if (event.type == Event::Closed)
+    while(window.isOpen()){
+         float dt=clock.restart().asSeconds();
+         Event event;
+         while(window.pollEvent(event)){
+            if (event.type == Event::Closed){
                 window.close();
-        }
-
-        window.clear();
-
-        switch (curState)
-        {
-        case MAIN:
-            menu.draw(window);
-            break;
-
-        case OPTIONS:
-            options.draw(window);
-            break;
-
-        case GAME:
-            window.clear();
-            break;
-
-        default:
-            curState = MAIN;
-            break;
-        }
-
-        window.display();
-    }
-    return 0;
-}
+            }
+         }
+         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+            test.circle.move(0,test.speed*dt*-1);
+         }
+         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
+             test.circle.move(0,test.speed*dt*1);
+         }
+         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
+          test.circle.move(test.speed*dt*-1,0);
+         }
+         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+            test.circle.move(test.speed*dt*1,0);
+         }
+         test.tracker=test.circle.getPosition();
+         test.update_color(&test);
+         test.update_speed(&test,dt);
+         window.clear();
+         window.draw(test.circle);
+         window.display();
+         
+      }
+   }

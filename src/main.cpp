@@ -66,8 +66,7 @@ struct groundobj
     int blockwidth = 200;
     int blockhright = 100;
 
-}grcollision;
-
+}ground;
 
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
@@ -92,9 +91,24 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 */
 
 //2
+
+void handleIntersection() {
+  // Platfrom-Player
+  if (playerst.megamanSpr.getGlobalBounds().intersects(ground.gnd.getGlobalBounds())) {
+    // Set player vy = 0;
+  }
+
+  // Wall-Player : Set player vx = 0;
+
+  // Enemy-player : Make the player get hit
+
+  // Enemy-Platform
+
+  // Enemy-Wall
+}
+
 int main()
 {
-    grcollision.gnd.getGlobalBounds( )
     int i = 0;
 
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");

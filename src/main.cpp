@@ -8,6 +8,8 @@
 #include <iomanip>
 
 #define MAX_ITEM_NO 10
+#define nbullets 10// number of bullets that the window can show , not the magazine
+const float gravity = 100.f;
 
 using namespace std;
 using namespace sf;
@@ -37,7 +39,7 @@ struct player
 	Sprite megamanSpr;
 
 	float speed = 100.0f;
-	float frameduration = 0.09f;
+	float frameduration = 0.05f;
 	float timer = 0.0f;
 	int sheet_width = 216; // sprite sheet height and width 
 	int sheet_height = 35;
@@ -53,13 +55,19 @@ struct bullet
     CircleShape shape;
     float speed =5.f ;
     int direction = 1;
-    bool isthere = false;
-
+    bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
+    //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
+    // make the slot has a bullet , to sum it up it create the bullet
 };
 
+struct groundobj
+{
+    RectangleShape gnd;
+    int blockwidth = 200;
+    int blockhright = 100;
 
+}grcollision;
 
-//bullet practice struct
 
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
@@ -71,9 +79,12 @@ void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m);
-void playerstats(player& p);
-void inputhandler(player& p, float dt);
-void animationhandler(player& p, float dt);
+void playerstats(player& playerst);
+void inputhandler(player& playerst, float dt , bullet windowmag[]);
+void animationhandler(player& playerst, float dt);
+void bulletstates(bullet& prj);
+void groundInit(groundobj& grcollision  );
+bool doesIntersect();
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
@@ -83,6 +94,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 //2
 int main()
 {
+    grcollision.gnd.getGlobalBounds( )
     int i = 0;
 
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
@@ -102,11 +114,22 @@ int main()
     //Options
     initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //same as initMenu but for options menu.
 
-    //Game
+    //~~~~~~~~~~~~Game~~~~~~~~~~~~~~~
+    //assigning the texture and sprites to megaman
 	float dt; // delta time and clock for the whole game loop
 	Clock clock;
 	// creating our megaman with the struct stats
-	playerstats(playerst); //assigning the texture and sprites to megaman
+	playerstats(playerst);
+    bullet windowmag[nbullets];//creating the array of struct 
+    //this struct helps us in alot of functions , first it helps us in creating 10 bullets without writing 10 line of codes for each one
+    // also this helps us to nulify the bullets that hit the boarder wihout needing to do this 10 times
+    //just using this global array and editting it in any loop we want
+
+    
+    for(int i =0 ; i<nbullets ; i++)
+    {
+        bulletstates(windowmag[i]);//this set up all the empty bullets with all of the bulletstates intializations
+    }
 
     //Password
     // (TBD)
@@ -120,13 +143,16 @@ int main()
         float dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
         {
-            if (event.type == Event::Closed) {
+            if (event.type == Event::Closed) 
+            {
                 window.close();
             }
-            if(event.key.code == Keyboard::Space) {
-                playerst.megamanSpr.move(0, -10);
-                playerst.moving = true;
-            }
+            //jump
+            // if(event.key.code == Keyboard::Space) 
+            // {
+            //     playerst.megamanSpr.move(0, -10);
+            //     playerst.moving = true;
+            // }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
 
@@ -146,13 +172,41 @@ int main()
             break;
 
         case GAME:
-            if (event.key.code == Keyboard::X) {
+            
+            if (event.key.code == Keyboard::X) 
+            {
                 mainMenu.curState = MAIN;
             }
-            window.clear();
-            window.draw(playerst.megamanSpr);
+            inputhandler(playerst, dt,windowmag); 
             animationhandler(playerst, dt);
-            inputhandler(playerst, dt);
+            
+          
+            //window.clear(); is this redundent?
+
+            for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
+            //this loop reads the array and locate the slot we want to fire , then it fire it and reset this bullet condition or bool
+            {
+                if(windowmag[i].isthere)
+                {
+                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction, 0);// here is the FIRING 
+                    //this function does fire the bullet in the direction that we condifiermed in the directionfunction inside the inputhandler  
+                    
+                    //so that the bullet fire in the direction the character is  facing 
+
+                    //the code below make each bullet when it hit the boundary it will reset so that it won't continue to move in the background 
+                    //and consume alot more resources each bullet
+                    if (windowmag[i].shape.getPosition().x > windowWidth || windowmag[i].shape.getPosition().x < 0) {
+                
+                        windowmag[i].isthere = false;
+                    }
+                    //break;
+                    window.draw(windowmag[i].shape);
+                    //break; 
+                    //nvm these breaks just for studying purposes only 
+                }
+            }   
+            window.draw(playerst.megamanSpr);
+
 
             //events of game go here
             break;
@@ -332,7 +386,7 @@ void playerstats(player& playerst) // p for better writing :D
 	playerst.megamanSpr.setOrigin(playerst.framewidth	 / 2.0f, playerst.frameheight / 2.0f);	
 }
 //~~~~~~~~~~~~~~~megaman buttons and input handler~~~~~~~~~~~~~~~~~~~~~~
-void inputhandler(player& playerst, float dt)
+void inputhandler(player& playerst, float dt ,bullet windowmag[])
 {
 	playerst.moving = false;
 
@@ -350,14 +404,54 @@ void inputhandler(player& playerst, float dt)
 		playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
 		playerst.moving = true;
 	}
-	else
-		// this condition is made only when the button isn't clicked we conclude that the character is idle and not moving
-		// so we resets the frames and the timer to start again whenever the player click the bottun:D
-	{
+    else//idle (state movement)
+    {
 
 		playerst.i = 0;
 		playerst.timer = 0.0f;
+        playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));
 	}
+
+	if(Keyboard::isKeyPressed(Keyboard::Z)) //this is the main bullet function , read it well
+    {
+            for(int i = 0 ; i < nbullets ; i++)
+            {
+                if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
+                {
+                    // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
+                    //from the postion of the character and in horizontal and vertical position , since our character can jump while jumping:D
+                    windowmag[i].isthere = true;    // x positon                                    y position
+                    windowmag[i].shape.setPosition(playerst.megamanSpr.getPosition().x,0);
+                    if(playerst.megamanSpr.getScale().x > 0)//this check the character direction by the x scale we wrote above
+                    {
+                        windowmag[i].direction = 1;
+                    }
+                    else
+                    {
+                        windowmag[i].direction = -1;
+                    }
+                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction,playerst.megamanSpr.getPosition().y);
+                    break;
+                    // this is the most IMPORTANT line here i hope you know why:D
+                    //look if this break wasn't here because this loop must on;y trigger once it found the 
+                    //the first empty slot and then it will be fired in the switch case above ,
+                    //the main problem here if the loop continues it will fill all of the empty slots with bullets 
+                    // then we the the character fire it will fire >> 10 bullets but in the same pixel moving with same direction
+                    // we won't see it but it will make the collusion with the enemy a hell:DDDD
+
+                }   
+              
+            }       
+
+
+            //events of game go here
+            
+           
+        
+    }
+
+		// this condition is made only when the button isn't clicked we conclude that the character is idle and not moving
+		// so we resets the frames and the timer to start again whenever the player click the bottun:D
 
 }
 //~~~~~~~~~~~~~~~~megaman frames and deltatime handler~~~~~~~~~~~~~~~~~~~~~~
@@ -379,10 +473,19 @@ void animationhandler(player& playerst, float dt)
 		{
 			playerst.timer = 0;
 			playerst.i++;
-			if (playerst.i >= 6)
+            if (playerst.i >= 6)
 				playerst.i = 0;
 			playerst.megamanSpr.setTextureRect(IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight));
+
 		}
 	}
 	
+}
+void bulletstates(bullet& prj)
+{
+    prj.shape.setRadius(5.f);
+    prj.shape.setFillColor(Color::Red);
+    //prj.isthere =false; // leave if for future bec. this will help us if we add a button to rest the level
+    // due to this button resets the condition after every loob not the struct
+
 }

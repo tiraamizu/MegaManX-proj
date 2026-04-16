@@ -6,13 +6,14 @@
 #include <string>
 #include <fstream>
 #include <iomanip>
+using namespace std;
+using namespace sf;
 
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
 const float gravity = 100.f;
 
-using namespace std;
-using namespace sf;
+
 
 enum GameState { MAIN, OPTIONS, GAME };
 
@@ -110,9 +111,9 @@ void handleIntersection() {
 int main()
 {
     int i = 0;
-
+    
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
-
+    
     MenuData mainMenu;
     MenuData optionsMenu;
 
@@ -214,6 +215,7 @@ int main()
                         windowmag[i].isthere = false;
                     }
                     //break;
+
                     window.draw(windowmag[i].shape);
                     //break; 
                     //nvm these breaks just for studying purposes only 
@@ -404,7 +406,7 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
 {
 	playerst.moving = false;
 
-	if (Keyboard::isKeyPressed(Keyboard::Right))
+	if (Keyboard::isKeyPressed(Keyboard::Right))//add && !intersect with wall
 	{
 		playerst.megamanSpr.move(playerst.speed * dt, 0);// to calculate distance moved for each frame
 		playerst.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want

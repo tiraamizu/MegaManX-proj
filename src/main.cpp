@@ -21,7 +21,7 @@ enum GameState { MAIN, OPTIONS, GAME };
 //Main Window Resolution
 const int windowWidth = 640;
 const int windowHeight = 480;
-struct MenuData {
+struct MenuData {   
     Font font;
     Text menuSelection[MAX_ITEM_NO];
     int curMaxButtons;
@@ -51,7 +51,7 @@ struct player
 	int i = 0; // our frame counter
 	bool moving;
     bool falling = true;
-		
+	bool isOnground = false;	
 } playerst;
 struct enemy
 {
@@ -195,7 +195,7 @@ int main()
             if(event.key.code == Keyboard::Space) 
             {
                 
-                playerst.moving = true;
+                playerst.isOnground = true;	
             }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
@@ -529,7 +529,10 @@ void animationhandler(player& playerst, float dt)
 
 		}
 	}
-	
+	if(playerst.isOnground)
+    {
+        
+    }
 }
 void bulletstates(bullet& prj)
 {
@@ -546,8 +549,9 @@ void groundInit(groundobj& grcollision  )
     grcollision.gnd.setPosition(200, 400);
     grcollision.gnd.setOrigin(grcollision.blockwidth/2, grcollision.blockheight/2);
 }
-void Gravity(player& playerst, float &dt){            
-            playerst.megamanSpr.move(0, playerst.Vy +(gravity* dt));
+void Gravity(player& playerst, float &dt)
+{            
+            playerst.megamanSpr.move(0,playerst.Vy*( dt));
               if(playerst.falling){
                     playerst.Vy += gravity;
                 }

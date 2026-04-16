@@ -1,7 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
-#include <vector>
 #include <sstream>
 #include <string>
 #include <fstream>
@@ -50,7 +49,7 @@ struct player
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
 	bool moving;
-    bool falling = true;
+    bool isground = false;
 		
 } playerst;
 struct enemy
@@ -69,7 +68,7 @@ struct enemy
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
 	bool moving;
-    bool falling = true;
+    bool isground = false;
 		
 } dEnemy;
 struct bullet
@@ -85,8 +84,8 @@ struct bullet
 struct groundobj
 {
     RectangleShape gnd;
-    int blockwidth = 200;
-    int blockheight = 100;
+    int blockwidth = 200.f;
+    int blockheight = 100.f;
 
 }ground;
 
@@ -105,7 +104,7 @@ void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
 void groundInit(groundobj& grcollision  );
-void handleIntersection(bool& falling);
+void handleIntersection(bool& isground);
 void groundinit(groundobj& grcollision, RenderWindow& window);
 void Gravity(player& playerst, float &dt);
 
@@ -116,15 +115,11 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 
 //2
 
-void handleIntersection(bool& falling) {
+void handleIntersection(bool& isground) {
   // Platfrom-Player
   if (playerst.megamanSpr.getGlobalBounds().intersects(ground.gnd.getGlobalBounds())) {
     // Set player vy = 0;
-    playerst.falling = false;
-    playerst.Vy = 0;
-  }
-  else {
-    playerst.falling = true;
+    playerst.isground = true;
   }
 
   // Wall-Player : Set player vx = 0;
@@ -227,7 +222,7 @@ int main()
             groundInit(ground);
             window.draw(ground.gnd);
             Gravity(playerst, dt);
-            handleIntersection(playerst.falling);
+            handleIntersection(playerst.isground);
           
             //window.clear(); is this redundent?
 
@@ -547,8 +542,11 @@ void groundInit(groundobj& grcollision  )
 }
 void Gravity(player& playerst, float &dt){            
             playerst.megamanSpr.move(0, playerst.Vy * dt);
-              if(playerst.falling){
+              if(!playerst.isground){
                     playerst.Vy += gravity;
+                }
+                else{
+                    playerst.Vy = 0;
                 }
             };
 

@@ -6,14 +6,13 @@
 #include <string>
 #include <fstream>
 #include <iomanip>
-using namespace std;
-using namespace sf;
 
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
-const float gravity = 100.f;
+const float gravity = 0.5f;
 
-
+using namespace std;
+using namespace sf;
 
 enum GameState { MAIN, OPTIONS, GAME };
 
@@ -34,12 +33,14 @@ struct MenuData {
     GameState curState = MAIN;
 };
 //megaman struct
+View camera(FloatRect(0, 0, windowWidth, windowHeight));
 struct player
 {
 	Texture megamanTexture;
 	Sprite megamanSpr;
 
-	float speed = 100.0f;
+	float Vx = 100.0f;
+    float Vy = 0.0f;
 	float frameduration = 0.05f;
 	float timer = 0.0f;
 	int sheet_width = 216; // sprite sheet height and width 
@@ -49,12 +50,32 @@ struct player
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
 	bool moving;
+    bool falling = true;
 		
 } playerst;
+struct enemy
+{
+	Texture megamanTexture;
+	Sprite megamanSpr;
+
+	float Vx = 100.0f;
+    float Vy = 0.0f;
+	float frameduration = 0.05f;
+	float timer = 0.0f;
+	int sheet_width = 216; // sprite sheet height and width 
+	int sheet_height = 35;
+	int frame = 6;
+	int framewidth = sheet_width / frame; // each frame height and width don't ask how i calculated it 
+	int frameheight = sheet_height;
+	int i = 0; // our frame counter
+	bool moving;
+    bool falling = true;
+		
+} dEnemy;
 struct bullet
 {
     CircleShape shape;
-    float speed =5.f ;
+    float speed =0.5f ;
     int direction = 1;
     bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
     //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
@@ -65,7 +86,7 @@ struct groundobj
 {
     RectangleShape gnd;
     int blockwidth = 200;
-    int blockhright = 100;
+    int blockheight = 100;
 
 }ground;
 
@@ -84,7 +105,9 @@ void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
 void groundInit(groundobj& grcollision  );
-bool doesIntersect();
+void handleIntersection(bool& falling);
+void groundinit(groundobj& grcollision, RenderWindow& window);
+void Gravity(player& playerst, float &dt);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
@@ -93,10 +116,15 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 
 //2
 
-void handleIntersection() {
+void handleIntersection(bool& falling) {
   // Platfrom-Player
   if (playerst.megamanSpr.getGlobalBounds().intersects(ground.gnd.getGlobalBounds())) {
     // Set player vy = 0;
+    playerst.falling = false;
+    playerst.Vy = 0;
+  }
+  else {
+    playerst.falling = true;
   }
 
   // Wall-Player : Set player vx = 0;
@@ -111,9 +139,9 @@ void handleIntersection() {
 int main()
 {
     int i = 0;
-    
+
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
-    
+
     MenuData mainMenu;
     MenuData optionsMenu;
 
@@ -155,6 +183,7 @@ int main()
     Event event;
     while (window.isOpen())
     {
+        camera.setCenter(playerst.megamanSpr.getPosition()); //sets camera to follow the player
         float dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
         {
@@ -162,12 +191,12 @@ int main()
             {
                 window.close();
             }
-            //jump
-            // if(event.key.code == Keyboard::Space) 
-            // {
-            //     playerst.megamanSpr.move(0, -10);
-            //     playerst.moving = true;
-            // }
+           //jump
+            if(event.key.code == Keyboard::Space) 
+            {
+                
+                playerst.moving = true;
+            }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
 
@@ -177,6 +206,7 @@ int main()
         switch (mainMenu.curState)
         {
         case MAIN:
+        window.setView(window.getDefaultView()); //sets camera to default view rather than where the player WAS.
             window.draw(mainMenu.XLogoSprite);
             window.draw(mainMenu.logoSprite); //draws logo
             drawMenuSelection(mainMenu, window);
@@ -187,14 +217,18 @@ int main()
             break;
 
         case GAME:
-            
+            window.setView(camera);
             if (event.key.code == Keyboard::X) 
             {
                 mainMenu.curState = MAIN;
             }
+
             inputhandler(playerst, dt,windowmag); 
             animationhandler(playerst, dt);
-            
+            groundInit(ground);
+            window.draw(ground.gnd);
+            Gravity(playerst, dt);
+            handleIntersection(playerst.falling);
           
             //window.clear(); is this redundent?
 
@@ -210,12 +244,11 @@ int main()
 
                     //the code below make each bullet when it hit the boundary it will reset so that it won't continue to move in the background 
                     //and consume alot more resources each bullet
-                    if (windowmag[i].shape.getPosition().x > windowWidth || windowmag[i].shape.getPosition().x < 0) {
+                    if (windowmag[i].shape.getPosition().x > window.getSize().x || windowmag[i].shape.getPosition().x < playerst.megamanSpr.getPosition().x - window.getSize().x/2) {
                 
                         windowmag[i].isthere = false;
                     }
                     //break;
-
                     window.draw(windowmag[i].shape);
                     //break; 
                     //nvm these breaks just for studying purposes only 
@@ -406,9 +439,9 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
 {
 	playerst.moving = false;
 
-	if (Keyboard::isKeyPressed(Keyboard::Right))//add && !intersect with wall
+	if (Keyboard::isKeyPressed(Keyboard::Right))
 	{
-		playerst.megamanSpr.move(playerst.speed * dt, 0);// to calculate distance moved for each frame
+		playerst.megamanSpr.move(playerst.Vx * dt, 0);// to calculate distance moved for each frame
 		playerst.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want
 		// note the ngeative direction changes based on the TEXTURE direction which we implemented
 		playerst.moving = true;
@@ -416,10 +449,11 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
 	else if (Keyboard::isKeyPressed(Keyboard::Left))
 	{
 		//distance covered
-		playerst.megamanSpr.move(-playerst.speed * dt, 0);
+		playerst.megamanSpr.move(-playerst.Vx * dt, 0);
 		playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
 		playerst.moving = true;
 	}
+    
     else//idle (state movement)
     {
 
@@ -505,3 +539,17 @@ void bulletstates(bullet& prj)
     // due to this button resets the condition after every loob not the struct
 
 }
+void groundInit(groundobj& grcollision  )
+{
+    grcollision.gnd.setSize(Vector2f(grcollision.blockwidth, grcollision.blockheight));
+    grcollision.gnd.setFillColor(Color::Green);
+    grcollision.gnd.setPosition(200, 400);
+    grcollision.gnd.setOrigin(grcollision.blockwidth/2, grcollision.blockheight/2);
+}
+void Gravity(player& playerst, float &dt){            
+            playerst.megamanSpr.move(0, playerst.Vy +(gravity* dt));
+              if(playerst.falling){
+                    playerst.Vy += gravity;
+                }
+            };
+

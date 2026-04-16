@@ -1,7 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
-#include <vector>
 #include <sstream>
 #include <string>
 #include <fstream>
@@ -21,6 +20,8 @@ enum GameState { MAIN, OPTIONS, GAME };
 //Main Window Resolution
 const int windowWidth = 640;
 const int windowHeight = 480;
+
+
 struct MenuData {
     Font font;
     Text menuSelection[MAX_ITEM_NO];
@@ -50,7 +51,8 @@ struct player
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
 	bool moving;
-    bool falling = true;
+    bool isground = false;
+    float jumpstrength = -200.f;
 		
 } playerst;
 struct enemy
@@ -69,7 +71,7 @@ struct enemy
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
 	bool moving;
-    bool falling = true;
+    bool isground = false;
 		
 } dEnemy;
 struct bullet
@@ -85,8 +87,8 @@ struct bullet
 struct groundobj
 {
     RectangleShape gnd;
-    int blockwidth = 200;
-    int blockheight = 100;
+    int blockwidth = 200.f;
+    int blockheight = 100.f;
 
 }ground;
 
@@ -105,7 +107,7 @@ void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
 void groundInit(groundobj& grcollision  );
-void handleIntersection(bool& falling);
+void handleIntersection(bool& isground);
 void groundinit(groundobj& grcollision, RenderWindow& window);
 void Gravity(player& playerst, float &dt);
 
@@ -116,15 +118,18 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 
 //2
 
-void handleIntersection(bool& falling) {
+void handleIntersection(player& playerst , float &dt) {
   // Platfrom-Player
   if (playerst.megamanSpr.getGlobalBounds().intersects(ground.gnd.getGlobalBounds())) {
     // Set player vy = 0;
-    playerst.falling = false;
     playerst.Vy = 0;
+    playerst.isground = true;
   }
-  else {
-    playerst.falling = true;
+  else 
+  {
+
+    playerst.Vy += gravity * dt;
+    playerst.isground = false;
   }
 
   // Wall-Player : Set player vx = 0;
@@ -192,11 +197,11 @@ int main()
                 window.close();
             }
             //jump
-            // if(event.key.code == Keyboard::Space) 
-            // {
-            //     playerst.megamanSpr.move(0, -10);
-            //     playerst.moving = true;
-            // }
+            if(event.key.code == Keyboard::Space && playerst.isground) 
+            {
+                playerst.Vy = playerst.jumpstrength;
+                playerst.isground = false;
+            }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
 
@@ -227,7 +232,7 @@ int main()
             groundInit(ground);
             window.draw(ground.gnd);
             Gravity(playerst, dt);
-            handleIntersection(playerst.falling);
+            handleIntersection(playerst, dt);
           
             //window.clear(); is this redundent?
 
@@ -545,10 +550,13 @@ void groundInit(groundobj& grcollision  )
     grcollision.gnd.setPosition(200, 400);
     grcollision.gnd.setOrigin(grcollision.blockwidth/2, grcollision.blockheight/2);
 }
-void Gravity(player& playerst, float &dt){            
+void Gravity(player& playerst, float &dt)
+{            
             playerst.megamanSpr.move(0, playerst.Vy * dt);
-              if(playerst.falling){
+              if(!playerst.isground){
                     playerst.Vy += gravity;
                 }
-            };
-
+                else{
+                    playerst.Vy = 0;
+                }
+};

@@ -22,6 +22,8 @@ const int windowWidth = 640;
 const int windowHeight = 480;
 SoundBuffer buffer; // declarations for sfx
 Sound sound;
+//player hitbox
+const Vector2f mega_hitbox_size(55.f,60.f); //reminder to change this later depending on megaman's sprite,
 
 
 struct MenuData {
@@ -41,9 +43,12 @@ struct player
 {
 	Texture megamanTexture;
 	Sprite megamanSpr;
+    RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
 
 	float Vx = 100.0f;
     float Vy = 0.0f;
+    float inv_timer=3.0;
+    Vector2f Pos_Tracker; 
 	float frameduration = 0.05f;
 	float timer = 0.0f;
 	int sheet_width = 216; // sprite sheet height and width 
@@ -52,6 +57,7 @@ struct player
 	int framewidth = sheet_width / frame; // each frame height and width don't ask how i calculated it 
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
+    bool invincible=true;
 	bool moving;
     bool isground = false;
     bool invincible = false;
@@ -96,6 +102,8 @@ void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m);
 void playerstats(player& playerst);
+void playerhitbox_pos(player& playerst);
+void check_invincibility(player& playerst,float dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
@@ -275,8 +283,11 @@ int main()
                     //and don't release it but we want the action to happen only once in this for loop
                     
                 }
-            }   
+            }
+            playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
+            playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
             window.draw(playerst.megamanSpr);
+            window.draw(playerst.hitbox);
 
 
             //events of game go here
@@ -455,6 +466,13 @@ void playerstats(player& playerst) // p for better writing :D
 	playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));//start with the first frame of the sprite sheet
 	//note we will change this if we want to make a standing animation
 	playerst.megamanSpr.setOrigin(playerst.framewidth	 / 2.0f, playerst.frameheight / 2.0f);	
+    playerst.hitbox.setFillColor(Color::Transparent);
+    playerst.hitbox.setSize(mega_hitbox_size);
+    playerst.hitbox.setOrigin(mega_hitbox_size.x/2,mega_hitbox_size.y/2);
+}
+//~~~~~~~~~~~~~~~Put the rectangle on megaman~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void playerhitbox_pos(player& playerst){
+    playerst.hitbox.setPosition(playerst.Pos_Tracker);
 }
 //~~~~~~~~~~~~~~~megaman buttons and input handler~~~~~~~~~~~~~~~~~~~~~~
 void inputhandler(player& playerst, float dt ,bullet windowmag[])
@@ -543,32 +561,16 @@ void Gravity(player& playerst, float &dt)
                 else{
                     playerst.Vy = 0;
                 }
-}
-void handleIntersection(player& playerst , float &dt , enemy& dEnemy ) {
-  // Platfrom-Player
-  if (playerst.megamanSpr.getGlobalBounds().intersects(ground.gnd.getGlobalBounds())) {
-    // Set player vy = 0;
-    playerst.Vy = 0;
-    playerst.isground = true;
-  }
-  else 
-  {
+};
 
-    playerst.Vy += gravity * dt;
-    playerst.isground = false;
-  }
-  if(playerst.megamanSpr.getGlobalBounds().intersects(dEnemy.shape.getGlobalBounds()))
-  {
-    dEnemy.shape.setFillColor(Color::Blue);
-
-     }
-
-}
-void enemystats(enemy& dEnemy)
-{
-    dEnemy.enemy2D.x = 50;
-    dEnemy.enemy2D.y = 50;
-    dEnemy.shape.setSize(dEnemy.enemy2D);
-    dEnemy.shape.setFillColor(Color::Red);
-    dEnemy.shape.setPosition(210.f , 300.f);
+void check_invincibility(player& playerst,float dt){
+    if (playerst.invincible==true &&playerst.inv_timer>=0)
+    {
+        playerst.inv_timer=playerst.inv_timer-dt;
+    }
+    else{
+        playerst.invincible=false;
+        playerst.inv_timer=3.0f;
+    }
+    
 }

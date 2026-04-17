@@ -189,14 +189,14 @@ int main()
     while (window.isOpen())
     {
         camera.setCenter(playerst.megamanSpr.getPosition()); //sets camera to follow the player
-        float dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
+        dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
         {
             if (event.type == Event::Closed) 
             {
                 window.close();
             }
-            //jump
+            //jump  
             if(event.key.code == Keyboard::Space && playerst.isground) 
             {
                 playerst.Vy = playerst.jumpstrength;
@@ -232,7 +232,7 @@ int main()
                         // we won't see it but it will make the collusion with the enemy a hell:DDDD
 
                     }   
-                   
+                    
                 }
             }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
@@ -285,10 +285,11 @@ int main()
                 
                         windowmag[i].isthere = false;
                     }
-                    //break;
+                    
                     window.draw(windowmag[i].shape);
-                    //break; 
-                    //nvm these breaks just for studying purposes only 
+                    window.setKeyRepeatEnabled(false);// this built-in event works when the player hold the button 
+                    //and don't release it but we want the action to happen only once in this for loop
+                    
                 }
             }   
             window.draw(playerst.megamanSpr);

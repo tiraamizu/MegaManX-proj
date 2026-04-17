@@ -20,6 +20,8 @@ enum GameState { MAIN, OPTIONS, GAME };
 //Main Window Resolution
 const int windowWidth = 640;
 const int windowHeight = 480;
+SoundBuffer buffer; // declarations for sfx
+Sound sound;
 
 
 struct MenuData {
@@ -76,9 +78,12 @@ struct enemy
 } dEnemy;
 struct bullet
 {
-    CircleShape shape;
-    float speed =1.f ;//~~~~~~~~~~~~~~~~~~
-    int direction = 1;
+    RectangleShape shape;
+    float speed =1.f ;
+
+    Vector2f bullet2D;
+    
+    int direction = 1;  
     bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
     //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
     // make the slot has a bullet , to sum it up it create the bullet
@@ -222,7 +227,13 @@ int main()
                         {
                             windowmag[i].direction = -1;
                         }
+                        if(!buffer.loadFromFile("sounds/shoot.wav"))
+                        { 
+                            cout<<"Error! Couldn't load sound files"<<endl;
+                        }
                         
+                        sound.setBuffer(buffer);
+                        sound.play();
                         break;
                         // this is the most IMPORTANT line here i hope you know why:D
                         //look if this break wasn't here because this loop must on;y trigger once it found the 
@@ -531,7 +542,9 @@ void animationhandler(player& playerst, float dt)
 }
 void bulletstates(bullet& prj)
 {
-    prj.shape.setRadius(5.f);
+    prj.bullet2D.x = 20;
+    prj.bullet2D.y = 20;
+    prj.shape.setSize(prj.bullet2D);
     prj.shape.setFillColor(Color::Red);
     //prj.isthere =false; // leave if for future bec. this will help us if we add a button to rest the level
     // due to this button resets the condition after every loob not the struct

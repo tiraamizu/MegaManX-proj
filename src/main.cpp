@@ -9,6 +9,7 @@
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
 const float gravity = 0.5f;
+const int blocks = 100;
 
 using namespace std;
 using namespace sf;
@@ -21,7 +22,10 @@ enum GameState { MAIN, OPTIONS, GAME };
 const int windowWidth = 640;
 const int windowHeight = 480;
 
-
+struct map {
+Sprite mapSprite;
+Texture mapTexture;
+} map1;
 struct MenuData {
     Font font;
     Text menuSelection[MAX_ITEM_NO];
@@ -40,7 +44,7 @@ struct player
 	Texture megamanTexture;
 	Sprite megamanSpr;
 
-	float Vx = 100.0f;
+	float Vx = 500.f;
     float Vy = 0.0f;
 	float frameduration = 0.05f;
 	float timer = 0.0f;
@@ -52,28 +56,9 @@ struct player
 	int i = 0; // our frame counter
 	bool moving;
     bool isground = false;
-    float jumpstrength = -200.f;
+    float jumpstrength = -600.f;
 		
 } playerst;
-struct enemy
-{
-	Texture megamanTexture;
-	Sprite megamanSpr;
-
-	float Vx = 100.0f;
-    float Vy = 0.0f;
-	float frameduration = 0.05f;
-	float timer = 0.0f;
-	int sheet_width = 216; // sprite sheet height and width 
-	int sheet_height = 35;
-	int frame = 6;
-	int framewidth = sheet_width / frame; // each frame height and width don't ask how i calculated it 
-	int frameheight = sheet_height;
-	int i = 0; // our frame counter
-	bool moving;
-    bool isground = false;
-		
-} dEnemy;
 struct bullet
 {
     CircleShape shape;
@@ -90,7 +75,7 @@ struct groundobj
     int blockwidth = 200.f;
     int blockheight = 100.f;
 
-}ground;
+}ground[blocks];
 
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
@@ -102,35 +87,33 @@ void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m);
-void playerstats(player& playerst);
-void inputhandler(player& playerst, float dt , bullet windowmag[]);
-void animationhandler(player& playerst, float dt);
-void bulletstates(bullet& prj);
-void groundInit(groundobj& grcollision  );
-void handleIntersection(bool& isground);
-void groundinit(groundobj& grcollision, RenderWindow& window);
-void Gravity(player& playerst, float &dt);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
 NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainMenu AND optionsMenu.
 */
 
-//2
+//2. Game function declarations
+void playerstats(player& playerst);
+void inputhandler(player& playerst, float dt , bullet windowmag[]);
+void animationhandler(player& playerst, float dt);
+void bulletstates(bullet& prj);
+void handleIntersection(bool& isground);
+void Gravity(player& playerst, float &dt);
+void createBlock(int index, float x, float y, float width, float height);
 
 void handleIntersection(player& playerst , float &dt) {
-  // Platfrom-Player
-  if (playerst.megamanSpr.getGlobalBounds().intersects(ground.gnd.getGlobalBounds())) {
-    // Set player vy = 0;
-    playerst.Vy = 0;
-    playerst.isground = true;
-  }
-  else 
-  {
-
-    playerst.Vy += gravity * dt;
     playerst.isground = false;
-  }
+  // Platfrom-Player
+  for(int i = 0 ; i < blocks ; i++)
+  {
+    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+      // Set player vy = 0;
+      if(playerst.Vy >= 0)
+      {
+      playerst.isground = true;
+      }
+}
 
   // Wall-Player : Set player vx = 0;
 
@@ -139,6 +122,7 @@ void handleIntersection(player& playerst , float &dt) {
   // Enemy-Platform
 
   // Enemy-Wall
+}
 }
 
 int main()
@@ -173,6 +157,14 @@ int main()
     // also this helps us to nulify the bullets that hit the boarder wihout needing to do this 10 times
     //just using this global array and editting it in any loop we want
 
+    //LOADING THE MAP
+
+    createBlock(0, 310, 380, 1490, 100);
+    createBlock(1, 1890, 320, 930, 100);
+    map1.mapTexture.loadFromFile("textures/map.png");
+    map1.mapSprite.setTexture(map1.mapTexture);
+    map1.mapSprite.setPosition(200, 0);
+    map1.mapSprite.setScale(2.0f, 2.0f);
     
     for(int i =0 ; i<nbullets ; i++)
     {
@@ -197,7 +189,7 @@ int main()
                 window.close();
             }
             //jump  
-            if(event.key.code == Keyboard::Space && playerst.isground) 
+            if(event.type == Event::KeyPressed && event.key.code == Keyboard::Space && playerst.isground) 
             {
                 playerst.Vy = playerst.jumpstrength;
                 playerst.isground = false;
@@ -256,16 +248,23 @@ int main()
 
         case GAME:
             window.setView(camera);
+            window.draw(map1.mapSprite);
             if (event.key.code == Keyboard::X) 
             {
                 mainMenu.curState = MAIN;
             }
+            if (event.key.code == Keyboard::C) 
+            {
+                playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+            } //debugging
             inputhandler(playerst, dt,windowmag); 
             animationhandler(playerst, dt);
-            groundInit(ground);
-            window.draw(ground.gnd);
-            Gravity(playerst, dt);
             handleIntersection(playerst, dt);
+            Gravity(playerst, dt);
+            for(int i = 0 ; i < blocks ; i++)
+            {
+                window.draw(ground[i].gnd);
+            }
           
             //window.clear(); is this redundent?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
@@ -315,6 +314,10 @@ int charSize = 20, xOffset = -100, yOffset = 270;
 
 //Initializes main menu resources
 bool resourcesCheck(MenuData &m) {
+    if (!map1.mapTexture.loadFromFile("textures/map.png")) {
+    cout << "ERROR: Could not find textures/map.png" << endl;
+    return false;
+}
     if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
@@ -537,13 +540,6 @@ void bulletstates(bullet& prj)
     // due to this button resets the condition after every loob not the struct
 
 }
-void groundInit(groundobj& grcollision  )
-{
-    grcollision.gnd.setSize(Vector2f(grcollision.blockwidth, grcollision.blockheight));
-    grcollision.gnd.setFillColor(Color::Green);
-    grcollision.gnd.setPosition(200, 400);
-    grcollision.gnd.setOrigin(grcollision.blockwidth/2, grcollision.blockheight/2);
-}
 void Gravity(player& playerst, float &dt)
 {            
             playerst.megamanSpr.move(0, playerst.Vy * dt);
@@ -554,3 +550,16 @@ void Gravity(player& playerst, float &dt)
                     playerst.Vy = 0;
                 }
 };
+void createBlock(int index, float x, float y, float width, float height) {
+    ground[index].blockwidth = width;
+    ground[index].blockheight = height;
+    x += width / 2.0f;
+
+    ground[index].gnd.setSize(Vector2f(width, height));
+        
+    ground[index].gnd.setOrigin(width / 2.0f, height / 2.0f);
+
+    ground[index].gnd.setPosition(x, y);
+}
+
+// Platform Function syntax: createBlock(block you want to start from (Starting block), number of blocks you want to add starting from aforementioned Starting Block, startingXPosition, yPos, Spacing Between Blocks);

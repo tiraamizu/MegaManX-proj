@@ -77,7 +77,7 @@ struct enemy
 struct bullet
 {
     CircleShape shape;
-    float speed =0.5f ;
+    float speed =1.f ;//~~~~~~~~~~~~~~~~~~
     int direction = 1;
     bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
     //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
@@ -189,18 +189,51 @@ int main()
     while (window.isOpen())
     {
         camera.setCenter(playerst.megamanSpr.getPosition()); //sets camera to follow the player
-        float dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
+        dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
         {
             if (event.type == Event::Closed) 
             {
                 window.close();
             }
-            //jump
+            //jump  
             if(event.key.code == Keyboard::Space && playerst.isground) 
             {
                 playerst.Vy = playerst.jumpstrength;
                 playerst.isground = false;
+            }
+            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
+            if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
+            {
+                for(int i = 0 ; i < nbullets ; i++)
+                {
+                    if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
+                    {
+                        // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
+                        //from the postion of the character and in horizontal and vertical position , since our character can jump while jumping:D
+                        windowmag[i].isthere = true;    // x positon                                    y position
+                        windowmag[i].shape.setPosition(playerst.megamanSpr.getPosition().x,playerst.megamanSpr.getPosition().y);//changed
+                        //this because the y = 0 will always spawn the ballet in a different location if megaman y is different
+                        if(playerst.megamanSpr.getScale().x > 0)//this check the character direction by the x scale we wrote above
+                        {
+                            windowmag[i].direction = 1;
+                        }
+                        else
+                        {
+                            windowmag[i].direction = -1;
+                        }
+                        
+                        break;
+                        // this is the most IMPORTANT line here i hope you know why:D
+                        //look if this break wasn't here because this loop must on;y trigger once it found the 
+                        //the first empty slot and then it will be fired in the switch case above ,
+                        //the main problem here if the loop continues it will fill all of the empty slots with bullets 
+                        // then we the the character fire it will fire >> 10 bullets but in the same pixel moving with same direction
+                        // we won't see it but it will make the collusion with the enemy a hell:DDDD
+
+                    }   
+                    
+                }
             }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
@@ -235,7 +268,7 @@ int main()
             handleIntersection(playerst, dt);
           
             //window.clear(); is this redundent?
-
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
             for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
             //this loop reads the array and locate the slot we want to fire , then it fire it and reset this bullet condition or bool
             {
@@ -246,16 +279,17 @@ int main()
                     
                     //so that the bullet fire in the direction the character is  facing 
 
-                    //the code below make each bullet when it hit the boundary it will reset so that it won't continue to move in the background 
+                    //the code below make each bullet when it hit the boundary it will reset so that it won't continue to move in the background //~~~~~~~~~~~~~~~~~
                     //and consume alot more resources each bullet
-                    if (windowmag[i].shape.getPosition().x > window.getSize().x || windowmag[i].shape.getPosition().x < playerst.megamanSpr.getPosition().x - window.getSize().x/2) {
+                    if (windowmag[i].shape.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth  || windowmag[i].shape.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth) {
                 
                         windowmag[i].isthere = false;
                     }
-                    //break;
+                    
                     window.draw(windowmag[i].shape);
-                    //break; 
-                    //nvm these breaks just for studying purposes only 
+                    window.setKeyRepeatEnabled(false);// this built-in event works when the player hold the button 
+                    //and don't release it but we want the action to happen only once in this for loop
+                    
                 }
             }   
             window.draw(playerst.megamanSpr);
@@ -466,46 +500,6 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
         playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));
 	}
 
-	if(Keyboard::isKeyPressed(Keyboard::Z)) //this is the main bullet function , read it well
-    {
-            for(int i = 0 ; i < nbullets ; i++)
-            {
-                if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
-                {
-                    // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
-                    //from the postion of the character and in horizontal and vertical position , since our character can jump while jumping:D
-                    windowmag[i].isthere = true;    // x positon                                    y position
-                    windowmag[i].shape.setPosition(playerst.megamanSpr.getPosition().x,0);
-                    if(playerst.megamanSpr.getScale().x > 0)//this check the character direction by the x scale we wrote above
-                    {
-                        windowmag[i].direction = 1;
-                    }
-                    else
-                    {
-                        windowmag[i].direction = -1;
-                    }
-                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction,playerst.megamanSpr.getPosition().y);
-                    break;
-                    // this is the most IMPORTANT line here i hope you know why:D
-                    //look if this break wasn't here because this loop must on;y trigger once it found the 
-                    //the first empty slot and then it will be fired in the switch case above ,
-                    //the main problem here if the loop continues it will fill all of the empty slots with bullets 
-                    // then we the the character fire it will fire >> 10 bullets but in the same pixel moving with same direction
-                    // we won't see it but it will make the collusion with the enemy a hell:DDDD
-
-                }   
-              
-            }       
-
-
-            //events of game go here
-            
-           
-        
-    }
-
-		// this condition is made only when the button isn't clicked we conclude that the character is idle and not moving
-		// so we resets the frames and the timer to start again whenever the player click the bottun:D
 
 }
 //~~~~~~~~~~~~~~~~megaman frames and deltatime handler~~~~~~~~~~~~~~~~~~~~~~

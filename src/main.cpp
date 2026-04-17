@@ -5,13 +5,13 @@
 #include <string>
 #include <fstream>
 #include <iomanip>
-
+using namespace std;
+using namespace sf;
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
 const float gravity = 0.5f;
 
-using namespace std;
-using namespace sf;
+
 
 enum GameState { MAIN, OPTIONS, GAME };
 
@@ -54,26 +54,14 @@ struct player
 	int i = 0; // our frame counter
 	bool moving;
     bool isground = false;
+    bool invincible = false;
     float jumpstrength = -200.f;
 		
 } playerst;
 struct enemy
 {
-	Texture megamanTexture;
-	Sprite megamanSpr;
-
-	float Vx = 100.0f;
-    float Vy = 0.0f;
-	float frameduration = 0.05f;
-	float timer = 0.0f;
-	int sheet_width = 216; // sprite sheet height and width 
-	int sheet_height = 35;
-	int frame = 6;
-	int framewidth = sheet_width / frame; // each frame height and width don't ask how i calculated it 
-	int frameheight = sheet_height;
-	int i = 0; // our frame counter
-	bool moving;
-    bool isground = false;
+    RectangleShape shape;
+    Vector2f enemy2D;
 		
 } dEnemy;
 struct bullet
@@ -87,7 +75,7 @@ struct bullet
     bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
     //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
     // make the slot has a bullet , to sum it up it create the bullet
-};
+}prj;
 
 struct groundobj
 {
@@ -112,9 +100,10 @@ void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
 void groundInit(groundobj& grcollision  );
-void handleIntersection(bool& isground);
+void handleIntersection(player& playerst , float &dt , enemy& dEnemy);
 void groundinit(groundobj& grcollision, RenderWindow& window);
 void Gravity(player& playerst, float &dt);
+void enemystats(enemy& dEnemy);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
@@ -123,28 +112,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 
 //2
 
-void handleIntersection(player& playerst , float &dt) {
-  // Platfrom-Player
-  if (playerst.megamanSpr.getGlobalBounds().intersects(ground.gnd.getGlobalBounds())) {
-    // Set player vy = 0;
-    playerst.Vy = 0;
-    playerst.isground = true;
-  }
-  else 
-  {
 
-    playerst.Vy += gravity * dt;
-    playerst.isground = false;
-  }
-
-  // Wall-Player : Set player vx = 0;
-
-  // Enemy-player : Make the player get hit
-
-  // Enemy-Platform
-
-  // Enemy-Wall
-}
 
 int main()
 {
@@ -177,7 +145,7 @@ int main()
     //this struct helps us in alot of functions , first it helps us in creating 10 bullets without writing 10 line of codes for each one
     // also this helps us to nulify the bullets that hit the boarder wihout needing to do this 10 times
     //just using this global array and editting it in any loop we want
-
+    
     
     for(int i =0 ; i<nbullets ; i++)
     {
@@ -189,7 +157,8 @@ int main()
 
     //Controls
     Keyboard::Key interractionButton = Keyboard::Z;
-
+    enemystats(dEnemy);
+    groundInit(ground);
     Event event;
     while (window.isOpen())
     {
@@ -210,6 +179,8 @@ int main()
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
             if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
             {
+                
+ 
                 for(int i = 0 ; i < nbullets ; i++)
                 {
                     if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
@@ -232,8 +203,8 @@ int main()
                             cout<<"Error! Couldn't load sound files"<<endl;
                         }
                         
-                        sound.setBuffer(buffer);
-                        sound.play();
+                        // sound.setBuffer(buffer);
+                        // sound.play();
                         break;
                         // this is the most IMPORTANT line here i hope you know why:D
                         //look if this break wasn't here because this loop must on;y trigger once it found the 
@@ -273,12 +244,14 @@ int main()
             }
             inputhandler(playerst, dt,windowmag); 
             animationhandler(playerst, dt);
-            groundInit(ground);
+            
             window.draw(ground.gnd);
             Gravity(playerst, dt);
-            handleIntersection(playerst, dt);
-          
-            //window.clear(); is this redundent?
+            
+            window.draw(dEnemy.shape);
+            handleIntersection(playerst, dt,dEnemy);
+
+             
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
             for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
             //this loop reads the array and locate the slot we want to fire , then it fire it and reset this bullet condition or bool
@@ -494,6 +467,7 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
 		playerst.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want
 		// note the ngeative direction changes based on the TEXTURE direction which we implemented
 		playerst.moving = true;
+        
 	}
 	else if (Keyboard::isKeyPressed(Keyboard::Left))
 	{
@@ -501,7 +475,9 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
 		playerst.megamanSpr.move(-playerst.Vx * dt, 0);
 		playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
 		playerst.moving = true;
-	}
+	
+        
+    }
     
     else//idle (state movement)
     {
@@ -544,6 +520,7 @@ void bulletstates(bullet& prj)
 {
     prj.bullet2D.x = 20;
     prj.bullet2D.y = 20;
+    prj.shape.setOrigin(prj.shape.getGlobalBounds().width/2 , prj.shape.getGlobalBounds().height/2);
     prj.shape.setSize(prj.bullet2D);
     prj.shape.setFillColor(Color::Red);
     //prj.isthere =false; // leave if for future bec. this will help us if we add a button to rest the level
@@ -566,4 +543,32 @@ void Gravity(player& playerst, float &dt)
                 else{
                     playerst.Vy = 0;
                 }
-};
+}
+void handleIntersection(player& playerst , float &dt , enemy& dEnemy ) {
+  // Platfrom-Player
+  if (playerst.megamanSpr.getGlobalBounds().intersects(ground.gnd.getGlobalBounds())) {
+    // Set player vy = 0;
+    playerst.Vy = 0;
+    playerst.isground = true;
+  }
+  else 
+  {
+
+    playerst.Vy += gravity * dt;
+    playerst.isground = false;
+  }
+  if(playerst.megamanSpr.getGlobalBounds().intersects(dEnemy.shape.getGlobalBounds()))
+  {
+    dEnemy.shape.setFillColor(Color::Blue);
+
+     }
+
+}
+void enemystats(enemy& dEnemy)
+{
+    dEnemy.enemy2D.x = 50;
+    dEnemy.enemy2D.y = 50;
+    dEnemy.shape.setSize(dEnemy.enemy2D);
+    dEnemy.shape.setFillColor(Color::Red);
+    dEnemy.shape.setPosition(210.f , 300.f);
+}

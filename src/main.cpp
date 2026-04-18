@@ -12,8 +12,6 @@ using namespace sf;
 const float gravity = 0.5f;
 const int blocks = 100;
 
-
-
 enum GameState { MAIN, OPTIONS, GAME };
 
 //STRUCTS
@@ -47,7 +45,7 @@ struct player
 	Sprite megamanSpr;
     RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
 
-	float Vx = 300.f;
+	float Vx = 800.f;
     float Vy = 0.0f;
     float inv_timer=3.0;
     Vector2f Pos_Tracker; 
@@ -96,6 +94,7 @@ void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m);
+void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
@@ -114,29 +113,6 @@ void check_invincibility(player& playerst,float dt);
 void handleIntersection(player& playerst , float &dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void bulletstates(bullet& prj);
-
-void handleIntersection(player& playerst , float &dt) {
-    playerst.isground = false;
-  // Platfrom-Player
-  for(int i = 0 ; i < blocks ; i++)
-  {
-    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
-      // Set player vy = 0;
-      if(playerst.Vy >= 0)
-      {
-      playerst.isground = true;
-      }
-}
-
-  // Wall-Player : Set player vx = 0;
-
-  // Enemy-player : Make the player get hit
-
-  // Enemy-Platform
-
-  // Enemy-Wall
-}
-}
 
 int main()
 {
@@ -207,7 +183,7 @@ int main()
     Event event;
     while (window.isOpen())
     {
-        camera.setCenter(playerst.megamanSpr.getPosition()); //sets camera to follow the player
+        camBounds(70, 40, 60, 60);
         dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
         {
@@ -618,4 +594,64 @@ void check_invincibility(player& playerst,float dt){
         playerst.inv_timer=3.0f;
     }
     
+}
+
+void handleIntersection(player& playerst , float &dt) {
+    playerst.isground = false;
+  // Platfrom-Player
+  for(int i = 0 ; i < blocks ; i++)
+  {
+    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+      // Set player vy = 0;
+      if(playerst.Vy >= 0)
+      {
+      playerst.isground = true;
+      }
+}
+
+  // Wall-Player : Set player vx = 0;
+
+  // Enemy-player : Make the player get hit
+
+  // Enemy-Platform
+
+  // Enemy-Wall
+}
+}
+void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset){
+        //cout << Mouse::getPosition(window).x << " " << Mouse::getPosition(window).y << endl; //debugging
+        //will move to a function later
+        const float MAP_WIDTH = 15400.f; 
+        const float MAP_HEIGHT = 600.f;
+        const float MAP_START_X = 200.f;
+        const float MAP_START_Y = 0.f;
+        //updated map logic with limits
+        float camX = playerst.megamanSpr.getPosition().x;
+        float camY = playerst.megamanSpr.getPosition().y;
+
+        // calculate the boundary limits
+        float minX = MAP_START_X + (windowWidth / 2.0f) + LeftOffset;
+        float maxX = (MAP_START_X + MAP_WIDTH) - (windowWidth / 2.0f) - RightOffset;
+
+        float minY = MAP_START_Y + (windowHeight / 2.0f) + UpOffset;
+        float maxY = (MAP_START_Y + MAP_HEIGHT) - (windowHeight / 2.0f) - DownOffset;
+        if (camX < minX) {
+            camX = minX; 
+        } 
+        else if (camX > maxX) {
+            camX = maxX; 
+        }
+
+        if (camY < minY) {
+            camY = minY; 
+        } 
+        else if (camY > maxY) {
+            camY = maxY; 
+        }
+        else{
+            camX = playerst.megamanSpr.getPosition().x;
+            camY = playerst.megamanSpr.getPosition().y;
+        }
+        camera.setCenter(camX, camY);
+
 }

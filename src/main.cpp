@@ -5,13 +5,14 @@
 #include <string>
 #include <fstream>
 #include <iomanip>
-using namespace std;
-using namespace sf;
+
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
 const float gravity = 0.5f;
+const int blocks = 100;
 
-
+using namespace std;
+using namespace sf;
 
 enum GameState { MAIN, OPTIONS, GAME };
 
@@ -20,12 +21,11 @@ enum GameState { MAIN, OPTIONS, GAME };
 //Main Window Resolution
 const int windowWidth = 640;
 const int windowHeight = 480;
-SoundBuffer buffer; // declarations for sfx
-Sound sound;
-//player hitbox
-const Vector2f mega_hitbox_size(55.f,60.f); //reminder to change this later depending on megaman's sprite,
 
-
+struct map {
+Sprite mapSprite;
+Texture mapTexture;
+} map1;
 struct MenuData {
     Font font;
     Text menuSelection[MAX_ITEM_NO];
@@ -43,12 +43,9 @@ struct player
 {
 	Texture megamanTexture;
 	Sprite megamanSpr;
-    RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
 
-	float Vx = 100.0f;
+	float Vx = 500.f;
     float Vy = 0.0f;
-    float inv_timer=3.0;
-    Vector2f Pos_Tracker; 
 	float frameduration = 0.05f;
 	float timer = 0.0f;
 	int sheet_width = 216; // sprite sheet height and width 
@@ -57,31 +54,20 @@ struct player
 	int framewidth = sheet_width / frame; // each frame height and width don't ask how i calculated it 
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
-    bool invincible=true;
 	bool moving;
     bool isground = false;
-    bool invincible = false;
-    float jumpstrength = -200.f;
+    float jumpstrength = -600.f;
 		
 } playerst;
-struct enemy
-{
-    RectangleShape shape;
-    Vector2f enemy2D;
-		
-} dEnemy;
 struct bullet
 {
-    RectangleShape shape;
-    float speed =1.f ;
-
-    Vector2f bullet2D;
-    
-    int direction = 1;  
+    CircleShape shape;
+    float speed =1.f ;//~~~~~~~~~~~~~~~~~~
+    int direction = 1;
     bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
     //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
     // make the slot has a bullet , to sum it up it create the bullet
-}prj;
+};
 
 struct groundobj
 {
@@ -89,7 +75,7 @@ struct groundobj
     int blockwidth = 200.f;
     int blockheight = 100.f;
 
-}ground;
+}ground[blocks];
 
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
@@ -101,26 +87,43 @@ void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m);
-void playerstats(player& playerst);
-void playerhitbox_pos(player& playerst);
-void check_invincibility(player& playerst,float dt);
-void inputhandler(player& playerst, float dt , bullet windowmag[]);
-void animationhandler(player& playerst, float dt);
-void bulletstates(bullet& prj);
-void groundInit(groundobj& grcollision  );
-void handleIntersection(player& playerst , float &dt , enemy& dEnemy);
-void groundinit(groundobj& grcollision, RenderWindow& window);
-void Gravity(player& playerst, float &dt);
-void enemystats(enemy& dEnemy);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
 NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainMenu AND optionsMenu.
 */
 
-//2
+//2. Game function declarations
+void playerstats(player& playerst);
+void inputhandler(player& playerst, float dt , bullet windowmag[]);
+void animationhandler(player& playerst, float dt);
+void bulletstates(bullet& prj);
+void handleIntersection(bool& isground);
+void Gravity(player& playerst, float &dt);
+void createBlock(int index, float x, float y, float width, float height);
 
+void handleIntersection(player& playerst , float &dt) {
+    playerst.isground = false;
+  // Platfrom-Player
+  for(int i = 0 ; i < blocks ; i++)
+  {
+    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+      // Set player vy = 0;
+      if(playerst.Vy >= 0)
+      {
+      playerst.isground = true;
+      }
+}
 
+  // Wall-Player : Set player vx = 0;
+
+  // Enemy-player : Make the player get hit
+
+  // Enemy-Platform
+
+  // Enemy-Wall
+}
+}
 
 int main()
 {
@@ -153,7 +156,16 @@ int main()
     //this struct helps us in alot of functions , first it helps us in creating 10 bullets without writing 10 line of codes for each one
     // also this helps us to nulify the bullets that hit the boarder wihout needing to do this 10 times
     //just using this global array and editting it in any loop we want
+
+    //LOADING THE MAP
+
+    createBlock(0, 310, 380, 1490, 100);
+    createBlock(1, 1890, 320, 930, 100);
     
+    map1.mapTexture.loadFromFile("textures/map.png");
+    map1.mapSprite.setTexture(map1.mapTexture);
+    map1.mapSprite.setPosition(200, 0);
+    map1.mapSprite.setScale(2.0f, 2.0f);
     
     for(int i =0 ; i<nbullets ; i++)
     {
@@ -165,8 +177,7 @@ int main()
 
     //Controls
     Keyboard::Key interractionButton = Keyboard::Z;
-    enemystats(dEnemy);
-    groundInit(ground);
+
     Event event;
     while (window.isOpen())
     {
@@ -179,7 +190,7 @@ int main()
                 window.close();
             }
             //jump  
-            if(event.key.code == Keyboard::Space && playerst.isground) 
+            if(event.type == Event::KeyPressed && event.key.code == Keyboard::Space && playerst.isground) 
             {
                 playerst.Vy = playerst.jumpstrength;
                 playerst.isground = false;
@@ -187,8 +198,6 @@ int main()
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
             if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
             {
-                
- 
                 for(int i = 0 ; i < nbullets ; i++)
                 {
                     if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
@@ -206,13 +215,7 @@ int main()
                         {
                             windowmag[i].direction = -1;
                         }
-                        if(!buffer.loadFromFile("sounds/shoot.wav"))
-                        { 
-                            cout<<"Error! Couldn't load sound files"<<endl;
-                        }
                         
-                        // sound.setBuffer(buffer);
-                        // sound.play();
                         break;
                         // this is the most IMPORTANT line here i hope you know why:D
                         //look if this break wasn't here because this loop must on;y trigger once it found the 
@@ -246,20 +249,25 @@ int main()
 
         case GAME:
             window.setView(camera);
+            window.draw(map1.mapSprite);
             if (event.key.code == Keyboard::X) 
             {
                 mainMenu.curState = MAIN;
             }
+            if (event.key.code == Keyboard::C) 
+            {
+                playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+            } //debugging
             inputhandler(playerst, dt,windowmag); 
             animationhandler(playerst, dt);
-            
-            window.draw(ground.gnd);
+            handleIntersection(playerst, dt);
             Gravity(playerst, dt);
-            
-            window.draw(dEnemy.shape);
-            handleIntersection(playerst, dt,dEnemy);
-
-             
+            for(int i = 0 ; i < blocks ; i++)
+            {
+                window.draw(ground[i].gnd);
+            }
+          
+            //window.clear(); is this redundent?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
             for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
             //this loop reads the array and locate the slot we want to fire , then it fire it and reset this bullet condition or bool
@@ -283,11 +291,8 @@ int main()
                     //and don't release it but we want the action to happen only once in this for loop
                     
                 }
-            }
-            playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
-            playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
+            }   
             window.draw(playerst.megamanSpr);
-            window.draw(playerst.hitbox);
 
 
             //events of game go here
@@ -310,6 +315,10 @@ int charSize = 20, xOffset = -100, yOffset = 270;
 
 //Initializes main menu resources
 bool resourcesCheck(MenuData &m) {
+    if (!map1.mapTexture.loadFromFile("textures/map.png")) {
+    cout << "ERROR: Could not find textures/map.png" << endl;
+    return false;
+}
     if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
@@ -466,13 +475,6 @@ void playerstats(player& playerst) // p for better writing :D
 	playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));//start with the first frame of the sprite sheet
 	//note we will change this if we want to make a standing animation
 	playerst.megamanSpr.setOrigin(playerst.framewidth	 / 2.0f, playerst.frameheight / 2.0f);	
-    playerst.hitbox.setFillColor(Color::Transparent);
-    playerst.hitbox.setSize(mega_hitbox_size);
-    playerst.hitbox.setOrigin(mega_hitbox_size.x/2,mega_hitbox_size.y/2);
-}
-//~~~~~~~~~~~~~~~Put the rectangle on megaman~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-void playerhitbox_pos(player& playerst){
-    playerst.hitbox.setPosition(playerst.Pos_Tracker);
 }
 //~~~~~~~~~~~~~~~megaman buttons and input handler~~~~~~~~~~~~~~~~~~~~~~
 void inputhandler(player& playerst, float dt ,bullet windowmag[])
@@ -485,7 +487,6 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
 		playerst.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want
 		// note the ngeative direction changes based on the TEXTURE direction which we implemented
 		playerst.moving = true;
-        
 	}
 	else if (Keyboard::isKeyPressed(Keyboard::Left))
 	{
@@ -493,9 +494,7 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
 		playerst.megamanSpr.move(-playerst.Vx * dt, 0);
 		playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
 		playerst.moving = true;
-	
-        
-    }
+	}
     
     else//idle (state movement)
     {
@@ -536,21 +535,11 @@ void animationhandler(player& playerst, float dt)
 }
 void bulletstates(bullet& prj)
 {
-    prj.bullet2D.x = 20;
-    prj.bullet2D.y = 20;
-    prj.shape.setOrigin(prj.shape.getGlobalBounds().width/2 , prj.shape.getGlobalBounds().height/2);
-    prj.shape.setSize(prj.bullet2D);
+    prj.shape.setRadius(5.f);
     prj.shape.setFillColor(Color::Red);
     //prj.isthere =false; // leave if for future bec. this will help us if we add a button to rest the level
     // due to this button resets the condition after every loob not the struct
 
-}
-void groundInit(groundobj& grcollision  )
-{
-    grcollision.gnd.setSize(Vector2f(grcollision.blockwidth, grcollision.blockheight));
-    grcollision.gnd.setFillColor(Color::Green);
-    grcollision.gnd.setPosition(200, 400);
-    grcollision.gnd.setOrigin(grcollision.blockwidth/2, grcollision.blockheight/2);
 }
 void Gravity(player& playerst, float &dt)
 {            
@@ -562,15 +551,16 @@ void Gravity(player& playerst, float &dt)
                     playerst.Vy = 0;
                 }
 };
+void createBlock(int index, float x, float y, float width, float height) {
+    ground[index].blockwidth = width;
+    ground[index].blockheight = height;
+    x += width / 2.0f;
 
-void check_invincibility(player& playerst,float dt){
-    if (playerst.invincible==true &&playerst.inv_timer>=0)
-    {
-        playerst.inv_timer=playerst.inv_timer-dt;
-    }
-    else{
-        playerst.invincible=false;
-        playerst.inv_timer=3.0f;
-    }
-    
+    ground[index].gnd.setSize(Vector2f(width, height));
+        
+    ground[index].gnd.setOrigin(width / 2.0f, height / 2.0f);
+
+    ground[index].gnd.setPosition(x, y);
 }
+
+// Platform Function syntax: createBlock(block you want to start from (Starting block), number of blocks you want to add starting from aforementioned Starting Block, startingXPosition, yPos, Spacing Between Blocks);

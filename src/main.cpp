@@ -98,15 +98,6 @@ void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m);
-void playerstats(player& playerst);
-void playerhitbox_pos(player& playerst);
-void check_invincibility(player& playerst,float dt);
-void inputhandler(player& playerst, float dt , bullet windowmag[]);
-void animationhandler(player& playerst, float dt);
-void bulletstates(bullet& prj);
-void handleIntersection(player& playerst , float &dt);
-void groundinit(groundobj& grcollision, RenderWindow& window);
-void Gravity(player& playerst, float &dt);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
@@ -120,6 +111,11 @@ void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
 void Gravity(player& playerst, float &dt);
 void createBlock(int index, float x, float y, float width, float height);
+void playerhitbox_pos(player& playerst);
+void check_invincibility(player& playerst,float dt);
+void handleIntersection(player& playerst , float &dt);
+void inputhandler(player& playerst, float dt , bullet windowmag[]);
+void bulletstates(bullet& prj);
 
 void handleIntersection(player& playerst , float &dt) {
     playerst.isground = false;

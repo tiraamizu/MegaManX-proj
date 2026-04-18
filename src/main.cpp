@@ -161,6 +161,7 @@ int main()
 
     createBlock(0, 310, 380, 1490, 100);
     createBlock(1, 1890, 320, 930, 100);
+    
     map1.mapTexture.loadFromFile("textures/map.png");
     map1.mapSprite.setTexture(map1.mapTexture);
     map1.mapSprite.setPosition(200, 0);

@@ -265,10 +265,10 @@ int main()
             animationhandler(playerst, dt);
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
-            // for(int i = 0 ; i < blocks ; i++)
-            // {
-            //     window.draw(ground[i].gnd);
-            // }
+            for(int i = 0 ; i < blocks ; i++)
+            {
+                window.draw(ground[i].gnd);
+            }
           
             //window.clear(); is this redundent?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update

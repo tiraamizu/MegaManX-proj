@@ -47,7 +47,7 @@ struct player
 	Sprite megamanSpr;
     RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
 
-	float Vx = 500.f;
+	float Vx = 300.f;
     float Vy = 0.0f;
     float inv_timer=3.0;
     Vector2f Pos_Tracker; 
@@ -62,7 +62,7 @@ struct player
     bool invincible=true;
 	bool moving;
     bool isground = false;
-    float jumpstrength = -600.f;
+    float jumpstrength = -400.f;
 		
 } playerst;
 struct bullet
@@ -174,6 +174,20 @@ int main()
 
     createBlock(0, 310, 380, 1490, 100);
     createBlock(1, 1890, 320, 930, 100);
+    createBlock(2, 2900, 360, 1985, 100);
+    createBlock(3, 4965, 360, 1050, 100);
+    createBlock(4, 6100, 410, 1540, 100);
+    createBlock(5, 7765, 410, 125, 100);
+    createBlock(6, 7955, 360, 260, 100);
+    createBlock(7, 8335, 360, 390, 100);
+    createBlock(8, 8850, 290, 125, 100);
+    createBlock(9, 9045, 290, 125, 100);
+    createBlock(10, 9245, 290, 430, 100);
+    createBlock(11, 9815, 345, 125, 100);
+    createBlock(12, 10008, 420, 792, 100);
+    createBlock(13, 10900, 355, 575, 100);
+    createBlock(14, 11640, 420, 887, 100);
+    createBlock(15, 12687, 520, 2883, 100);
     
     map1.mapTexture.loadFromFile("textures/map.png");
     map1.mapSprite.setTexture(map1.mapTexture);
@@ -275,10 +289,10 @@ int main()
             animationhandler(playerst, dt);
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
-            for(int i = 0 ; i < blocks ; i++)
-            {
-                window.draw(ground[i].gnd);
-            }
+            // for(int i = 0 ; i < blocks ; i++)
+            // {
+            //     window.draw(ground[i].gnd);
+            // }
           
             //window.clear(); is this redundent?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update

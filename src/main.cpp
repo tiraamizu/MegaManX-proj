@@ -11,7 +11,7 @@ using namespace sf;
 #define nbullets 10// number of bullets that the window can show , not the magazine
 const float gravity = 0.5f;
 const int blocks = 100;
-
+const int n_enemys = 100;
 
 
 enum GameState { MAIN, OPTIONS, GAME };
@@ -65,7 +65,19 @@ struct player
     float jumpstrength = -600.f;
 		
 } playerst;
-struct bullet
+
+struct enemy {
+    Texture enemy1Texture;
+	Sprite enemy1Spr;
+
+  RectangleShape enemy_sh;
+  	int framewidth = 50; // each frame height and width don't ask how i calculated it
+	int frameheight =100;
+    bool isground = false;
+      bool alive = true;
+} enemy1[n_enemys];
+    
+ struct bullet
 {
     RectangleShape shape;
     float speed =1.f ;
@@ -104,6 +116,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 
 //2. Game function declarations
 void playerstats(player& playerst);
+void enemystats(enemy& enemy1,float xpos); 
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
@@ -165,6 +178,13 @@ int main()
 	Clock clock;
 	// creating our megaman with the struct stats
 	playerstats(playerst);
+
+    float spacing = 1500.f; 
+    for(int i = 0; i <100; i++)
+     {
+        enemystats(enemy1[i], 800.0f + (i * spacing));
+     }
+
     bullet windowmag[nbullets];//creating the array of struct 
     //this struct helps us in alot of functions , first it helps us in creating 10 bullets without writing 10 line of codes for each one
     // also this helps us to nulify the bullets that hit the boarder wihout needing to do this 10 times
@@ -191,6 +211,7 @@ int main()
     //Controls
     Keyboard::Key interractionButton = Keyboard::Z;
     Event event;
+   
     while (window.isOpen())
     {
         camera.setCenter(playerst.megamanSpr.getPosition()); //sets camera to follow the player
@@ -261,6 +282,13 @@ int main()
             break;
 
         case GAME:
+
+          for(int i = 0; i < 100; i++)
+
+          {
+            if(enemy1[i].alive)
+            window.draw(enemy1[i].enemy1Spr);
+          }
             window.setView(camera);
             window.draw(map1.mapSprite);
             if (event.key.code == Keyboard::X) 
@@ -309,6 +337,8 @@ int main()
             playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
+        
+  
 
 
             //events of game go here
@@ -604,4 +634,13 @@ void check_invincibility(player& playerst,float dt){
         playerst.inv_timer=3.0f;
     }
     
+}
+
+void enemystats(enemy& enemy1,float xpos=800.f)
+{
+ enemy1.enemy1Texture.loadFromFile("D:\\SNES - Mega Man X - Enemies - Enemies 1.png");
+ enemy1.enemy1Spr.setTexture(enemy1.enemy1Texture); //assigning the texture to the sprite so that we can use it in the game loop
+ enemy1.enemy1Spr.setOrigin(enemy1.framewidth	 / 2.0f, enemy1.frameheight / 2.0f);	
+ enemy1.enemy1Spr.setScale(4.0f, 4.0f);  
+ enemy1.enemy1Spr.setPosition(xpos, 325.f);
 }

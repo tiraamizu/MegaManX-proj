@@ -4,3 +4,6 @@ out
 .idea
 .vs
 .vscode
+.vcxproj
+.vcxproj.filters
+.cmake

@@ -17,8 +17,8 @@ enum GameState { MAIN, OPTIONS, GAME };
 //STRUCTS
 
 //Main Window Resolution
-const int windowWidth = 640;
-const int windowHeight = 480;
+const float windowWidth = 640;
+const float windowHeight = 480;
 //player hitbox
 const Vector2f mega_hitbox_size(55.f,60.f); //reminder to change this later depending on megaman's sprite,
 
@@ -39,6 +39,7 @@ struct MenuData {
 };
 //megaman struct
 View camera(FloatRect(0, 0, windowWidth, windowHeight));
+View menuCamera(FloatRect(0, 0, windowWidth, windowHeight));
 struct player
 {
 	Texture megamanTexture;
@@ -113,6 +114,7 @@ void check_invincibility(player& playerst,float dt);
 void handleIntersection(player& playerst , float &dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void bulletstates(bullet& prj);
+View aspectRatio(View view, float windowWidth, float windowHeight);
 
 int main()
 {
@@ -186,7 +188,13 @@ int main()
         camBounds(70, 40, 60, 60);
         dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
+        //aspect ratio logic
         {
+            if (event.type == Event::Resized) 
+            {
+                camera = aspectRatio(camera, event.size.width, event.size.height);
+                menuCamera = aspectRatio(menuCamera, event.size.width, event.size.height);
+            }
             if (event.type == Event::Closed) 
             {
                 window.close();
@@ -240,7 +248,8 @@ int main()
         switch (mainMenu.curState)
         {
         case MAIN:
-        window.setView(window.getDefaultView()); //sets camera to default view rather than where the player WAS.
+        aspectRatio(menuCamera, window.getSize().x, window.getSize().y);
+        window.setView(menuCamera);
             window.draw(mainMenu.XLogoSprite);
             window.draw(mainMenu.logoSprite); //draws logo
             drawMenuSelection(mainMenu, window);
@@ -260,15 +269,16 @@ int main()
             if (event.key.code == Keyboard::C) 
             {
                 playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+                playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
             } //debugging
             inputhandler(playerst, dt,windowmag); 
             animationhandler(playerst, dt);
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
-            for(int i = 0 ; i < blocks ; i++)
-            {
-                window.draw(ground[i].gnd);
-            }
+            // for(int i = 0 ; i < blocks ; i++)
+            // {
+            //     window.draw(ground[i].gnd);
+            // }
           
             //window.clear(); is this redundent?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
@@ -601,7 +611,7 @@ void handleIntersection(player& playerst , float &dt) {
   // Platfrom-Player
   for(int i = 0 ; i < blocks ; i++)
   {
-    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+    if (playerst.hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
       // Set player vy = 0;
       if(playerst.Vy >= 0)
       {
@@ -618,9 +628,9 @@ void handleIntersection(player& playerst , float &dt) {
   // Enemy-Wall
 }
 }
+//CAMERA BOUNDS FUNCTION
 void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset){
         //cout << Mouse::getPosition(window).x << " " << Mouse::getPosition(window).y << endl; //debugging
-        //will move to a function later
         const float MAP_WIDTH = 15400.f; 
         const float MAP_HEIGHT = 600.f;
         const float MAP_START_X = 200.f;
@@ -654,4 +664,21 @@ void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOf
         }
         camera.setCenter(camX, camY);
 
+}
+View aspectRatio(View view, float windowWidth, float windowHeight) {
+    float targetAspectRatio = 4.0f / 3.0f;
+    float windowAspectRatio = windowWidth / windowHeight;
+    float vpWidth = 1.0f, vpHeight = 1.0f, vpLeft = 0.0f, vpTop = 0.0f;
+
+    if (windowAspectRatio > targetAspectRatio) { //If actual ratio is wider than target ratio
+        vpWidth = targetAspectRatio / windowAspectRatio; // percentage of the width to use based on the ratio of the two aspect ratios
+        vpLeft = (1.0f - vpWidth) / 2.0f; // centering the viewport horizontally so that the ratio percentage shown starts from middle
+    }
+    else {  // if actual ratio is taller than target ratio
+        vpHeight = windowAspectRatio / targetAspectRatio; // percentage of the height to use based on the ratio of the two aspect ratios
+        vpTop = (1.0f - vpHeight) / 2.0f; //centering the viewport vertically so that the ratio percentage shown starts from middle
+    }
+
+    view.setViewport(FloatRect(vpLeft, vpTop, vpWidth, vpHeight));
+    return view;
 }

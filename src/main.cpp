@@ -11,264 +11,80 @@
 
 using namespace std;
 using namespace sf;
-
 enum GameState { MAIN, OPTIONS, GAME };
 
-//STRUCTS
-
-struct MenuData {
-    Font font;
-    Text menuSelection[MAX_ITEM_NO];
-    int curMaxButtons;
-    int curButtonIndex;
-    Color unselectedColor = sf::Color(83, 227, 255);
-    Color selectedColor = sf::Color(234, 138, 13);
-    Texture Logo, XLogo;
-    Sprite logoSprite, XLogoSprite;
-    GameState curState = MAIN;
-};
-
-// Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
-
-//1. Menu declaration functions (for main menu and options menu)
-void initMenu(MenuData &m, float width, float height);
-void initOptions(MenuData &m, float width, float height);
-void drawMenuSelection(MenuData &m, RenderWindow &window);
-void up(MenuData &m);
-void down(MenuData &m);
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
-bool resourcesCheck(MenuData &m);
-
-/*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
-THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
-NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainMenu AND optionsMenu.
-*/
-
-//2
 int main()
 {
-    //Main Window Resolution
-    const int windowWidth = 640;
-    const int windowHeight = 480;
+  int WindowWidth =1000;
+  int WindowHeight =1000;
 
-    RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
+  //window
+  
+  RenderWindow window = {VideoMode (WindowWidth,WindowHeight), "sfml test"};
+  
+  //rectanle shape
 
-    MenuData mainMenu;
-    MenuData optionsMenu;
+  Vector2f recLengths;
+  recLengths.x=50;
+  recLengths.y=25;
+  RectangleShape rec;
+  rec.setSize(recLengths);
+  rec.setFillColor(Color::Yellow);
+  //rec.setScale(3,4);
+  rec.setPosition(WindowWidth/2,WindowHeight/2);
+  rec.setOrigin(rec.getGlobalBounds().width/2,rec.getGlobalBounds().height/2);
 
-    // Load resources for both menus
-    if (!resourcesCheck(mainMenu) || !resourcesCheck(optionsMenu)) {
-        return 0;
-        //crashes program to stop messages (in resourcesCheck) from looping if logo is not found
-    };
+  //circle shape
+  
+  CircleShape circle1;
+ circle1.setRadius(50);
+ circle1.setFillColor(Color::Blue);
 
-    //Menu stuff (will add sub-menus like options and PASS WORRD stuff later)
-    initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu in 1st argument, 2nd and 3rd arguments are used for calculations regarding positions of menu items.
+ //main event
 
-    //Options
-    initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //same as initMenu but for options menu.
-
-    //Game
-
-    //Password
-    // (TBD)
-
-    //Controls
-    Keyboard::Key interractionButton = Keyboard::Z;
-
+ while(window.isOpen())
+  {
     Event event;
-    while (window.isOpen())
+
+    
+    while(window.pollEvent(event))
     {
-        while (window.pollEvent(event))
+        if (event.type == Event::Closed)
         {
-            if (event.type == Event::Closed) {
-                window.close();
-            }
-            menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
+            window.close();
         }
+        
+       
 
-        window.clear();
-
-        // Use mainMenu.curState to determine which menu to draw
-        switch (mainMenu.curState)
-        {
-        case MAIN:
-            window.draw(mainMenu.XLogoSprite);
-            window.draw(mainMenu.logoSprite); //draws logo
-            drawMenuSelection(mainMenu, window);
-            break;
-
-        case OPTIONS:
-            drawMenuSelection(optionsMenu, window);
-            break;
-
-        case GAME:
-            if (event.key.code == Keyboard::X) {
-                mainMenu.curState = MAIN;
-            }
-            window.clear();
-            //events of game go here
-            break;
-            
-
-        default:
-            mainMenu.curState = MAIN;
-            break;
-        }
-
-        window.display();
     }
-    return 0;
-}
 
-//FUNCTION DEFINITIONS  
+if(Keyboard::isKeyPressed(Keyboard::Up))
+       {
+        circle1.move(0,-1);
+       }
+       
+       if(Keyboard::isKeyPressed(Keyboard::Down))
+       {
+        circle1.move(0,1);
+       }
+       
+       if(Keyboard::isKeyPressed(Keyboard::Left))
+       {
+        circle1.move(-1,0);
+       }
+       
+       if(Keyboard::isKeyPressed(Keyboard::Right))
+       {
+        circle1.move(1,0);
+       }
 
-int charSize = 20, xOffset = -100, yOffset = 270;
 
-//Initializes main menu resources
-bool resourcesCheck(MenuData &m) {
-    if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
-        cout << "ERR : Logo not found";
-        return false;
-    }
-    if (!m.font.loadFromFile("fonts/mega-man-x.ttf")) {
-        cout << "ERR : Font not found";
-        return false;
-    }
-    m.XLogoSprite.setTexture(m.XLogo);
-    m.XLogoSprite.setPosition(320, 130);
-    m.XLogoSprite.setScale(1.5f, 1.5f);
-    m.logoSprite.setTexture(m.Logo);
-    m.logoSprite.setPosition(150, 130);
-    m.logoSprite.setScale(1.5f, 1.5f);
-    return true;
-}
-//Initializes main menu (note: we pass width and height by value bc we are using them for a calculation, no need to mod them.)
-void initMenu(MenuData &m, float width, float height) {
-    m.curMaxButtons = 4;
+    window.clear();
+    window.draw(circle1);
+    window.display();
+  }
 
-    //GAME START
-    m.menuSelection[0].setFont(m.font);
-    m.menuSelection[0].setFillColor(m.selectedColor);
-    m.menuSelection[0].setString("GAME START");
-    m.menuSelection[0].setCharacterSize(charSize);
-    m.menuSelection[0].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1) + yOffset);
+  
 
-    //PASS WORD
-    m.menuSelection[1].setFont(m.font);
-    m.menuSelection[1].setFillColor(m.unselectedColor);
-    m.menuSelection[1].setString("PASS WORD");
-    m.menuSelection[1].setCharacterSize(charSize);
-    m.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1.5) + yOffset);
 
-    //OPTION MODE
-    m.menuSelection[2].setFont(m.font);
-    m.menuSelection[2].setFillColor(m.unselectedColor);
-    m.menuSelection[2].setString("OPTION MODE");
-    m.menuSelection[2].setCharacterSize(charSize);
-    m.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 2) + yOffset);
-
-    //TERMINATE
-    m.menuSelection[3].setFont(m.font);
-    m.menuSelection[3].setFillColor(m.unselectedColor);
-    m.menuSelection[3].setString("TERMINATE");
-    m.menuSelection[3].setCharacterSize(charSize);
-    m.menuSelection[3].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 2.5) + yOffset);
-
-    m.curButtonIndex = 0;
-}
-
-//Draws menu components to the window
-void drawMenuSelection(MenuData &m, RenderWindow &window) {
-    for (int i = 0; i < m.curMaxButtons; ++i) {
-        window.draw(m.menuSelection[i]);
-    }
-}
-
-//Menu up button function
-void up(MenuData &m) {
-    m.menuSelection[m.curButtonIndex].setFillColor(m.unselectedColor);
-    m.curButtonIndex--;
-    if (m.curButtonIndex < 0) {
-        m.curButtonIndex = m.curMaxButtons - 1;
-    }
-    m.menuSelection[m.curButtonIndex].setFillColor(m.selectedColor);
-}
-
-//Menu down button function
-void down(MenuData &m) {
-    m.menuSelection[m.curButtonIndex].setFillColor(m.unselectedColor);
-    m.curButtonIndex++;
-    if (m.curButtonIndex >= m.curMaxButtons) {
-        m.curButtonIndex = 0;
-    }
-    m.menuSelection[m.curButtonIndex].setFillColor(m.selectedColor);
-}
-
-//Initializes options menu
-void initOptions(MenuData &m, float width, float height) {
-    // we use initMenu to copy data from the menu struct and reuse it in options.
-    initMenu(m, width, height);
-
-    m.curMaxButtons = 3;
-    //CONTROLS
-    m.menuSelection[0].setString("CONTROLS");
-    //AUDIO
-    m.menuSelection[1].setString("AUDIO");
-    //BACK
-    m.menuSelection[2].setString("BACK");
-
-    m.curButtonIndex = 0;
-}
-
-//main is a placeholder for mainmenu, options is a placeholder for options menu.
-//this function handles switching between menus and the game, it also handles the menu interraction button (Z in this case) for both menus and the game.
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, Keyboard::Key interractionButton) {
-    if (event.type == Event::KeyPressed) {
-        switch (main.curState)
-        {
-        case MAIN:
-            if (event.key.code == Keyboard::Up) {
-                up(main);
-            }
-            if (event.key.code == Keyboard::Down) {
-                down(main);
-            }
-            if (event.key.code == interractionButton) {
-                if (main.curButtonIndex == 0) {
-                    main.curState = GAME;
-                }
-                if (main.curButtonIndex == 2) {
-                    main.curState = OPTIONS;
-                }
-                if (main.curButtonIndex == 3) {
-                    window.close();
-                }
-            }
-            break;
-
-        case OPTIONS:
-            if (event.key.code == Keyboard::Up) {
-                up(options);
-            }
-            if (event.key.code == Keyboard::Down) {
-                down(options);
-            }
-            if (event.key.code == interractionButton) {
-                if (options.curButtonIndex == 2) {
-                    main.curState = MAIN;
-                }
-            }
-            break;
-
-        case GAME:
-            if (event.key.code == Keyboard::X) {
-                main.curState = MAIN;
-            }
-            break;
-
-        default:
-            break;
-        }
-    }
 }

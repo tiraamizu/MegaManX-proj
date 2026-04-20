@@ -20,8 +20,8 @@ enum GameState { MAIN, OPTIONS, GAME };
 //STRUCTS
 
 //Main Window Resolution
-const int windowWidth = 640;
-const int windowHeight = 480;
+const float windowWidth = 640;
+const float windowHeight = 480;
 //player hitbox
 const Vector2f mega_hitbox_size(55.f,60.f); //reminder to change this later depending on megaman's sprite,
 
@@ -42,6 +42,7 @@ struct MenuData {
 };
 //megaman struct
 View camera(FloatRect(0, 0, windowWidth, windowHeight));
+View menuCamera(FloatRect(0, 0, windowWidth, windowHeight));
 struct player
 {
 	Texture megamanTexture;
@@ -126,30 +127,6 @@ void handleIntersection(player& playerst , float &dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void bulletstates(bullet& prj);
 
-
-void handleIntersection(player& playerst , float &dt) {
-    playerst.isground = false;
-  // Platfrom-Player
-  for(int i = 0 ; i < blocks ; i++)
-  {
-    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
-      // Set player vy = 0;
-      if(playerst.Vy >= 0)
-      {
-      playerst.isground = true;
-      }
-}
-
-  // Wall-Player : Set player vx = 0;
-
-  // Enemy-player : Make the player get hit
-
-  // Enemy-Platform
-
-  // Enemy-Wall
-}
-}
-
 int main()
 {
     int i = 0;
@@ -216,7 +193,13 @@ int main()
         camera.setCenter(playerst.megamanSpr.getPosition()); //sets camera to follow the player
         dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
+        //aspect ratio logic
         {
+            if (event.type == Event::Resized) 
+            {
+                camera = aspectRatio(camera, event.size.width, event.size.height);
+                menuCamera = aspectRatio(menuCamera, event.size.width, event.size.height);
+            }
             if (event.type == Event::Closed) 
             {
                 window.close();
@@ -270,7 +253,8 @@ int main()
         switch (mainMenu.curState)
         {
         case MAIN:
-        window.setView(window.getDefaultView()); //sets camera to default view rather than where the player WAS.
+        aspectRatio(menuCamera, window.getSize().x, window.getSize().y);
+        window.setView(menuCamera);
             window.draw(mainMenu.XLogoSprite);
             window.draw(mainMenu.logoSprite); //draws logo
             drawMenuSelection(mainMenu, window);
@@ -290,15 +274,16 @@ int main()
             if (event.key.code == Keyboard::C) 
             {
                 playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+                playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
             } //debugging
             inputhandler(playerst, dt,windowmag); 
             animationhandler(playerst, dt);
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
-            for(int i = 0 ; i < blocks ; i++)
-            {
-                window.draw(ground[i].gnd);
-            }
+            // for(int i = 0 ; i < blocks ; i++)
+            // {
+            //     window.draw(ground[i].gnd);
+            // }
           
             //window.clear(); is this redundent?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
@@ -633,12 +618,79 @@ void check_invincibility(player& playerst,float dt){
     
 }
 
-void enemystats(enemy& enemy1,float xpos)
-{
- enemy1.enemy1Texture.loadFromFile("D:\\SNES - Mega Man X - Enemies - Enemies 1.png");
- enemy1.enemy1Spr.setTexture(enemy1.enemy1Texture); //assigning the texture to the sprite so that we can use it in the game loop
- enemy1.enemy1Spr.setOrigin(enemy1.framewidth	 / 2.0f, enemy1.frameheight / 2.0f);	
- enemy1.enemy1Spr.setScale(4.0f, 4.0f);  
- enemy1.enemy1Spr.setPosition(xpos, 325.0f);
+void handleIntersection(player& playerst , float &dt) {
+    playerst.isground = false;
+  // Platfrom-Player
+  for(int i = 0 ; i < blocks ; i++)
+  {
+    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+      // Set player vy = 0;
+      if(playerst.Vy >= 0)
+      {
+      playerst.isground = true;
+      }
+}
 
+  // Wall-Player : Set player vx = 0;
+
+  // Enemy-player : Make the player get hit
+
+  // Enemy-Platform
+
+  // Enemy-Wall
+}
+}
+void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset){
+        //cout << Mouse::getPosition(window).x << " " << Mouse::getPosition(window).y << endl; //debugging
+        //will move to a function later
+        const float MAP_WIDTH = 15400.f; 
+        const float MAP_HEIGHT = 600.f;
+        const float MAP_START_X = 200.f;
+        const float MAP_START_Y = 0.f;
+        //updated map logic with limits
+        float camX = playerst.megamanSpr.getPosition().x;
+        float camY = playerst.megamanSpr.getPosition().y;
+
+        // calculate the boundary limits
+        float minX = MAP_START_X + (windowWidth / 2.0f) + LeftOffset;
+        float maxX = (MAP_START_X + MAP_WIDTH) - (windowWidth / 2.0f) - RightOffset;
+
+        float minY = MAP_START_Y + (windowHeight / 2.0f) + UpOffset;
+        float maxY = (MAP_START_Y + MAP_HEIGHT) - (windowHeight / 2.0f) - DownOffset;
+        if (camX < minX) {
+            camX = minX; 
+        } 
+        else if (camX > maxX) {
+            camX = maxX; 
+        }
+
+        if (camY < minY) {
+            camY = minY; 
+        } 
+        else if (camY > maxY) {
+            camY = maxY; 
+        }
+        else{
+            camX = playerst.megamanSpr.getPosition().x;
+            camY = playerst.megamanSpr.getPosition().y;
+        }
+        camera.setCenter(camX, camY);
+
+}
+View aspectRatio(View view, float windowWidth, float windowHeight) {
+    float targetAspectRatio = 4.0f / 3.0f;
+    float windowAspectRatio = windowWidth / windowHeight;
+    float vpWidth = 1.0f, vpHeight = 1.0f, vpLeft = 0.0f, vpTop = 0.0f;
+
+    if (windowAspectRatio > targetAspectRatio) { //If actual ratio is wider than target ratio
+        vpWidth = targetAspectRatio / windowAspectRatio; // percentage of the width to use based on the ratio of the two aspect ratios
+        vpLeft = (1.0f - vpWidth) / 2.0f; // centering the viewport horizontally so that the ratio percentage shown starts from middle
+    }
+    else {  // if actual ratio is taller than target ratio
+        vpHeight = windowAspectRatio / targetAspectRatio; // percentage of the height to use based on the ratio of the two aspect ratios
+        vpTop = (1.0f - vpHeight) / 2.0f; //centering the viewport vertically so that the ratio percentage shown starts from middle
+    }
+
+    view.setViewport(FloatRect(vpLeft, vpTop, vpWidth, vpHeight));
+    return view;
 }

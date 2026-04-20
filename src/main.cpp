@@ -9,9 +9,10 @@ using namespace std;
 using namespace sf;
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
+#define n_enemys 100
 const float gravity = 0.5f;
 const int blocks = 100;
-const int n_enemys = 100;
+
 
 
 enum GameState { MAIN, OPTIONS, GAME };
@@ -69,11 +70,9 @@ struct player
 struct enemy {
     Texture enemy1Texture;
 	Sprite enemy1Spr;
-
-  RectangleShape enemy_sh;
   	int framewidth = 50; // each frame height and width don't ask how i calculated it
 	int frameheight =100;
-    bool isground = false;
+    bool isground = true;
       bool alive = true;
 } enemy1[n_enemys];
     
@@ -108,7 +107,6 @@ void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m);
-
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
 NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainMenu AND optionsMenu.
@@ -127,6 +125,7 @@ void check_invincibility(player& playerst,float dt);
 void handleIntersection(player& playerst , float &dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void bulletstates(bullet& prj);
+
 
 void handleIntersection(player& playerst , float &dt) {
     playerst.isground = false;
@@ -180,9 +179,9 @@ int main()
 	playerstats(playerst);
 
     float spacing = 1500.f; 
-    for(int i = 0; i <100; i++)
+    for(int i = 0; i <n_enemys; i++)
      {
-        enemystats(enemy1[i], 800.0f + (i * spacing));
+       enemystats(enemy1[i], 1000.0f + (i * spacing)); //spawns enemys in a line with a spacing of 2500 pixels between each enemy, and the y position is the same as megaman's y position so that they are on the same level
      }
 
     bullet windowmag[nbullets];//creating the array of struct 
@@ -206,7 +205,7 @@ int main()
     }
 
     //Password
-    // (TBD)
+    // (TBD
 
     //Controls
     Keyboard::Key interractionButton = Keyboard::Z;
@@ -259,7 +258,7 @@ int main()
                         // we won't see it but it will make the collusion with the enemy a hell:DDDD
 
                     }   
-                    
+
                 }
             }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
@@ -282,13 +281,6 @@ int main()
             break;
 
         case GAME:
-
-          for(int i = 0; i < 100; i++)
-
-          {
-            if(enemy1[i].alive)
-            window.draw(enemy1[i].enemy1Spr);
-          }
             window.setView(camera);
             window.draw(map1.mapSprite);
             if (event.key.code == Keyboard::X) 
@@ -338,7 +330,12 @@ int main()
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
         
-  
+         for(int i = 0; i < 100; i++)
+
+          {
+            if(enemy1[i].alive)
+            window.draw(enemy1[i].enemy1Spr);
+          }
 
 
             //events of game go here
@@ -636,11 +633,12 @@ void check_invincibility(player& playerst,float dt){
     
 }
 
-void enemystats(enemy& enemy1,float xpos=800.f)
+void enemystats(enemy& enemy1,float xpos)
 {
  enemy1.enemy1Texture.loadFromFile("D:\\SNES - Mega Man X - Enemies - Enemies 1.png");
  enemy1.enemy1Spr.setTexture(enemy1.enemy1Texture); //assigning the texture to the sprite so that we can use it in the game loop
  enemy1.enemy1Spr.setOrigin(enemy1.framewidth	 / 2.0f, enemy1.frameheight / 2.0f);	
  enemy1.enemy1Spr.setScale(4.0f, 4.0f);  
- enemy1.enemy1Spr.setPosition(xpos, 325.f);
+ enemy1.enemy1Spr.setPosition(xpos, 325.0f);
+
 }

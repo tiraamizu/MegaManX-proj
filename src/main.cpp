@@ -126,7 +126,7 @@ void check_invincibility(player& playerst,float dt);
 void handleIntersection(player& playerst , float &dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void bulletstates(bullet& prj);
-
+View aspectRatio(View view, float windowWidth, float windowHeight);
 int main()
 {
     int i = 0;
@@ -675,7 +675,7 @@ void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOf
             camY = playerst.megamanSpr.getPosition().y;
         }
         camera.setCenter(camX, camY);
-
+    
 }
 View aspectRatio(View view, float windowWidth, float windowHeight) {
     float targetAspectRatio = 4.0f / 3.0f;
@@ -693,4 +693,13 @@ View aspectRatio(View view, float windowWidth, float windowHeight) {
 
     view.setViewport(FloatRect(vpLeft, vpTop, vpWidth, vpHeight));
     return view;
+}
+void enemystats(enemy& enemy1,float xpos)
+{
+ enemy1.enemy1Texture.loadFromFile("D:\\SNES - Mega Man X - Enemies - Enemies 1.png");
+ enemy1.enemy1Spr.setTexture(enemy1.enemy1Texture); //assigning the texture to the sprite so that we can use it in the game loop
+ enemy1.enemy1Spr.setOrigin(enemy1.framewidth	 / 2.0f, enemy1.frameheight / 2.0f);	
+ enemy1.enemy1Spr.setScale(4.0f, 4.0f);  
+ enemy1.enemy1Spr.setPosition(xpos, 325.0f);
+
 }

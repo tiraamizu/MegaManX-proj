@@ -52,7 +52,7 @@ struct player
     float inv_timer=3.0;
     Vector2f Pos_Tracker; 
 	float frameduration = 0.05f;
-	float timer = 0.0f;
+	float timer = 0.0f;//note~~~~~~~~~~~~~~~~~~
 	int sheet_width = 216; // sprite sheet height and width 
 	int sheet_height = 35;
 	int frame = 6;
@@ -65,6 +65,24 @@ struct player
     float jumpstrength = -450.f;
 		
 } playerst ;
+struct enemy
+{
+    Texture enemyTexture;
+    Sprite enemySpr;
+    int sheetWidth = 0;
+    int sheetHeight = 0;
+    int frame = 9;
+    int frameWidth = sheetWidth / frame;
+    int frameHeight = sheetHeight;
+    int i = 0;//frame counter
+    float frameDuration = 0.1f;
+    float timer =0.f;
+    bool isActive = false;
+    float detectionRange = 300.f;
+    float shootTimer = 0.f;
+    bool alive =true;
+}dEnemy;
+
 struct bullet
 {
     RectangleShape shape;
@@ -78,6 +96,7 @@ struct bullet
     // make the slot has a bullet , to sum it up it create the bullet
 
 }prj, eprj;
+
 
 struct groundobj
 {
@@ -116,19 +135,23 @@ void check_invincibility(player& playerst,float dt);
 void handleIntersection(player& playerst , float &dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void bulletstates(bullet& prj);
+void enemystates(enemy & dEnemy);
+void enemydetection(enemy& dEnemy , player& playerst);
 
-void handleIntersection(player& playerst , float &dt) {
+void handleIntersection(player& playerst , float &dt) 
+{
     playerst.isground = false;
   // Platfrom-Player
   for(int i = 0 ; i < blocks ; i++)
   {
-    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) 
+    {
       // Set player vy = 0;
       if(playerst.Vy >= 0)
       {
       playerst.isground = true;
       }
-}
+    }
 
   // Wall-Player : Set player vx = 0;
 
@@ -137,7 +160,7 @@ void handleIntersection(player& playerst , float &dt) {
   // Enemy-Platform
 
   // Enemy-Wall
-}
+    }
 }
 
 int main()
@@ -171,6 +194,7 @@ int main()
     //this struct helps us in alot of functions , first it helps us in creating 10 bullets without writing 10 line of codes for each one
     // also this helps us to nulify the bullets that hit the boarder wihout needing to do this 10 times
     //just using this global array and editting it in any loop we want
+    bullet enemyMag[2];
 
     //LOADING THE MAP
 
@@ -215,7 +239,7 @@ int main()
             {
                 for(int i = 0 ; i < nbullets ; i++)//look again~~~
                 {
-                    if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
+                    if(!windowmag[i].isthere)//notes~~~~~~~~~~~ here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
                     {
                         // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
                         //from the postion of the character and in horizontal and vertical position , since our character can jump while jumping:D
@@ -282,7 +306,7 @@ int main()
             }
           
             //window.clear(); is this redundent?
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
             for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
             //this loop reads the array and locate the slot we want to fire , then it fire it and reset this bullet condition or bool
             {
@@ -606,4 +630,18 @@ void check_invincibility(player& playerst,float dt){
         playerst.inv_timer=3.0f;
     }
     
+}
+void enemystates(enemy & dEnemy)
+{
+    dEnemy.enemyTexture.loadFromFile("textures/SNES - Mega Man X - Enemies - Enemies 1.png");
+    dEnemy.enemySpr.setTexture(dEnemy.enemyTexture);
+    dEnemy.enemySpr.setScale(2.0f, 2.0f);
+    dEnemy.enemySpr.setOrigin(dEnemy.frameWidth / 2.0f, dEnemy.frameHeight / 2.0f);
+    dEnemy.enemySpr.setOrigin(dEnemy.frameWidth	 / 2.0f, dEnemy.frameHeight / 2.0f);
+    //dEnemy.enemySpr.setPosition(x,y)
+    
+}
+void enemydetection(enemy& dEnemy , player& playerst)
+{
+    if(playerst.megamanSpr.getPosition().x <);
 }

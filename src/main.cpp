@@ -62,13 +62,13 @@ struct player
     bool invincible=true;
 	bool moving;
     bool isground = false;
-    float jumpstrength = -600.f;
+    float jumpstrength = -450.f;
 		
-} playerst;
+} playerst ;
 struct bullet
 {
     RectangleShape shape;
-    float speed =1.f ;
+    float speed =500.f ;
 
     Vector2f bullet2D;
     
@@ -76,7 +76,8 @@ struct bullet
     bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
     //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
     // make the slot has a bullet , to sum it up it create the bullet
-}prj;
+
+}prj, eprj;
 
 struct groundobj
 {
@@ -85,6 +86,7 @@ struct groundobj
     int blockheight = 100.f;
 
 }ground[blocks];
+
 
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
@@ -191,6 +193,7 @@ int main()
     //Controls
     Keyboard::Key interractionButton = Keyboard::Z;
     Event event;
+   // ~~~~
     while (window.isOpen())
     {
         camera.setCenter(playerst.megamanSpr.getPosition()); //sets camera to follow the player
@@ -210,9 +213,7 @@ int main()
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
             if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
             {
-                
- 
-                for(int i = 0 ; i < nbullets ; i++)
+                for(int i = 0 ; i < nbullets ; i++)//look again~~~
                 {
                     if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
                     {
@@ -287,10 +288,11 @@ int main()
             {
                 if(windowmag[i].isthere)
                 {
-                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction, 0);// here is the FIRING 
+                    windowmag[i].shape.move((windowmag[i].speed* windowmag[i].direction*dt), 0);// here is the FIRING 
                     //this function does fire the bullet in the direction that we condifiermed in the directionfunction inside the inputhandler  
                     
                     //so that the bullet fire in the direction the character is  facing 
+                    
 
                     //the code below make each bullet when it hit the boundary it will reset so that it won't continue to move in the background //~~~~~~~~~~~~~~~~~
                     //and consume alot more resources each bullet
@@ -490,7 +492,7 @@ void playerstats(player& playerst) // p for better writing :D
 	playerst.megamanSpr.setScale(2.0f, 2.0f);  
 	playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));//start with the first frame of the sprite sheet
 	//note we will change this if we want to make a standing animation
-	playerst.megamanSpr.setOrigin(playerst.framewidth	 / 2.0f, playerst.frameheight / 2.0f);	
+	playerst.megamanSpr.setOrigin(playerst.framewidth/ 2.0f, playerst.frameheight / 2.0f);	
     playerst.hitbox.setFillColor(Color::Transparent);
     playerst.hitbox.setSize(mega_hitbox_size);
     playerst.hitbox.setOrigin(mega_hitbox_size.x/2,mega_hitbox_size.y/2);

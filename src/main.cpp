@@ -46,7 +46,7 @@ struct player
 	Sprite megamanSpr;
     RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
 
-	float Vx = 800.f;
+	float Vx = 400.f;
     float Vy = 0.0f;
     float inv_timer=3.0;
     Vector2f Pos_Tracker; 

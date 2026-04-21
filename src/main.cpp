@@ -11,6 +11,7 @@ using namespace sf;
 #define nbullets 10// number of bullets that the window can show , not the magazine
 const float gravity = 0.5f;
 const int blocks = 100;
+const float ratio_health=3.84;
 
 enum GameState { MAIN, OPTIONS, GAME };
 
@@ -45,7 +46,8 @@ struct player
 	Texture megamanTexture;
 	Sprite megamanSpr;
     RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
-
+    Texture healthbar_text;
+    RectangleShape healthbar;
 	float Vx = 800.f;
     float Vy = 0.0f;
     float inv_timer=3.0;
@@ -61,8 +63,8 @@ struct player
     bool invincible=true;
 	bool moving;
     bool isground = false;
-    float jumpstrength = -400.f;
-    int health =19;
+    float jumpstrength = -300.f;
+    int health =0;
 		
 } playerst;
 struct bullet
@@ -105,6 +107,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 
 //2. Game function declarations
 void playerstats(player& playerst);
+void health_blockout(player& playerst,RectangleShape& blackout);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
@@ -116,13 +119,16 @@ void handleIntersection(player& playerst , float &dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void bulletstates(bullet& prj);
 View aspectRatio(View view, float windowWidth, float windowHeight);
+//temp functions
+void damage (player& playerst);
+void heal (player& playerst);
 
 int main()
-{
+{   //blackout that blocks healthbar to make it seem gone
     RectangleShape blackout;
-    blackout.setFillColor(Color::Red);
-    blackout.setSize(Vector2f(20,1));
-    blackout.setPosition(5.f,100.f);
+    blackout.setFillColor(Color::Black);
+    blackout.setSize(Vector2f(15,1));
+    blackout.setPosition(31.f,141.f);
     
     int i = 0;
 
@@ -318,6 +324,8 @@ int main()
             //constants on the screen (aka just health), dont do .draw under it or else it wont function the same as you want
             // if you wanna do .draw   make sure to reuse window.setView(camera); and then use window.draw under it
             window.setView(window.getDefaultView());
+            health_blockout(playerst,blackout);
+            window.draw(playerst.healthbar);
             window.draw(blackout);
 
 
@@ -504,6 +512,11 @@ void playerstats(player& playerst) // p for better writing :D
     playerst.hitbox.setFillColor(Color::Transparent);
     playerst.hitbox.setSize(mega_hitbox_size);
     playerst.hitbox.setOrigin(mega_hitbox_size.x/2,mega_hitbox_size.y/2);
+    playerst.healthbar.setSize(Vector2f(30,55));
+    playerst.healthbar.setPosition(20,135);
+    playerst.healthbar.scale(1.25f,2.f);
+    playerst.healthbar_text.loadFromFile("textures/healthbar.png");
+    playerst.healthbar.setTexture(&playerst.healthbar_text);
 }
 //~~~~~~~~~~~~~~~Put the rectangle on megaman~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void playerhitbox_pos(player& playerst){
@@ -582,7 +595,7 @@ void bulletstates(bullet& prj)
 }
 void Gravity(player& playerst, float &dt)
 {            
-            playerst.megamanSpr.move(0, playerst.Vy * dt);
+            playerst.megamanSpr.move(0, playerst.Vy *0.001);
               if(!playerst.isground){
                     playerst.Vy += gravity;
                 }
@@ -691,4 +704,10 @@ View aspectRatio(View view, float windowWidth, float windowHeight) {
 
     view.setViewport(FloatRect(vpLeft, vpTop, vpWidth, vpHeight));
     return view;
+}
+
+void health_blockout(player& playerst,RectangleShape& blackout){
+   float X=(19-playerst.health)*ratio_health;
+    blackout.setScale(1,X);
+
 }

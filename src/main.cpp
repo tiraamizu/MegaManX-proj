@@ -62,6 +62,7 @@ struct player
 	bool moving;
     bool isground = false;
     float jumpstrength = -400.f;
+    int health =19;
 		
 } playerst;
 struct bullet
@@ -118,6 +119,11 @@ View aspectRatio(View view, float windowWidth, float windowHeight);
 
 int main()
 {
+    RectangleShape blackout;
+    blackout.setFillColor(Color::Red);
+    blackout.setSize(Vector2f(20,1));
+    blackout.setPosition(5.f,100.f);
+    
     int i = 0;
 
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
@@ -309,6 +315,10 @@ int main()
             playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
+            //constants on the screen (aka just health), dont do .draw under it or else it wont function the same as you want
+            // if you wanna do .draw   make sure to reuse window.setView(camera); and then use window.draw under it
+            window.setView(window.getDefaultView());
+            window.draw(blackout);
 
 
             //events of game go here

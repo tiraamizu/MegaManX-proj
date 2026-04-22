@@ -8,11 +8,10 @@
 using namespace std;
 using namespace sf;
 #define MAX_ITEM_NO 10
-#define nbullets 10// number of bullets that the window can show , not the magazine
+#define nbullets 2// number of bullets that the window can show , not the magazine
 #define n_enemys 100
 const float gravity = 0.5f;
 const int blocks = 100;
-
 
 
 enum GameState { MAIN, OPTIONS, GAME };
@@ -20,8 +19,8 @@ enum GameState { MAIN, OPTIONS, GAME };
 //STRUCTS
 
 //Main Window Resolution
-const float windowWidth = 640;
-const float windowHeight = 480;
+const int windowWidth = 640;
+const int windowHeight = 480;
 //player hitbox
 const Vector2f mega_hitbox_size(55.f,60.f); //reminder to change this later depending on megaman's sprite,
 
@@ -42,7 +41,6 @@ struct MenuData {
 };
 //megaman struct
 View camera(FloatRect(0, 0, windowWidth, windowHeight));
-View menuCamera(FloatRect(0, 0, windowWidth, windowHeight));
 struct player
 {
 	Texture megamanTexture;
@@ -69,26 +67,46 @@ struct player
 } playerst;
 
 struct enemy {
-    Texture enemy1Texture;
-	Sprite enemy1Spr;
+    Texture enemyTexture;
+	Sprite enemySpr;
   	int framewidth = 50; // each frame height and width don't ask how i calculated it
 	int frameheight =100;
     bool isground = true;
-      bool alive = true;
-} enemy1[n_enemys];
+    float detectionRange = 450.f;
+    bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
+    bool alive = true;
+} dEnemy[n_enemys];
     
  struct bullet
 {
     RectangleShape shape;
     float speed =1.f ;
-
     Vector2f bullet2D;
-    
     int direction = 1;  
     bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
     //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
     // make the slot has a bullet , to sum it up it create the bullet
+
 }prj;
+
+ struct enemybullet
+{
+
+    RectangleShape shape;
+    float speed =0.2f ;
+    Vector2f bullet2D;
+    int direction = 1;  
+    bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
+    //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
+    // make the slot has a bullet , to sum it up it create the bullet
+float timer = 0.0f;
+    void update(float dt) {
+        if (isthere) {
+            shape.move(speed * direction * dt, 0);
+        }
+    }
+
+}dEnemyBullet;
 
 struct groundobj
 {
@@ -115,7 +133,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 
 //2. Game function declarations
 void playerstats(player& playerst);
-void enemystats(enemy& enemy1,float xpos); 
+void enemystatus(enemy& dEnemy, float xpos);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
@@ -126,7 +144,31 @@ void check_invincibility(player& playerst,float dt);
 void handleIntersection(player& playerst , float &dt);
 void inputhandler(player& playerst, float dt , bullet windowmag[]);
 void bulletstates(bullet& prj);
-View aspectRatio(View view, float windowWidth, float windowHeight);
+void enemybulletstatus(enemybullet& dEnemyBullet);
+void shouting();
+void handleIntersection(player& playerst , float &dt) {
+    playerst.isground = false;
+  // Platfrom-Player
+  for(int i = 0 ; i < blocks ; i++)
+  {
+    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+      // Set player vy = 0;
+      if(playerst.Vy >= 0)
+      {
+      playerst.isground = true;
+      }
+}
+
+  // Wall-Player : Set player vx = 0;
+
+  // Enemy-player : Make the player get hit
+
+  // Enemy-Platform
+
+  // Enemy-Wall
+}
+}
+
 int main()
 {
     int i = 0;
@@ -158,8 +200,9 @@ int main()
     float spacing = 1500.f; 
     for(int i = 0; i <n_enemys; i++)
      {
-       enemystats(enemy1[i], 1000.0f + (i * spacing)); //spawns enemys in a line with a spacing of 2500 pixels between each enemy, and the y position is the same as megaman's y position so that they are on the same level
+       enemystatus(dEnemy[i], 1000.0f + (i * spacing)); //spawns enemys in a line with a spacing of 2500 pixels between each enemy, and the y position is the same as megaman's y position so that they are on the same level
      }
+
 
     bullet windowmag[nbullets];//creating the array of struct 
     //this struct helps us in alot of functions , first it helps us in creating 10 bullets without writing 10 line of codes for each one
@@ -188,18 +231,18 @@ int main()
     Keyboard::Key interractionButton = Keyboard::Z;
     Event event;
    
+for(int i = 0; i < 2; i++)
+{
+    dEnemyBullet.shape.setSize(Vector2f(20,20));
+    dEnemyBullet.shape.setFillColor(Color::Blue);
+}
+
     while (window.isOpen())
     {
         camera.setCenter(playerst.megamanSpr.getPosition()); //sets camera to follow the player
         dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         while (window.pollEvent(event))
-        //aspect ratio logic
         {
-            if (event.type == Event::Resized) 
-            {
-                camera = aspectRatio(camera, event.size.width, event.size.height);
-                menuCamera = aspectRatio(menuCamera, event.size.width, event.size.height);
-            }
             if (event.type == Event::Closed) 
             {
                 window.close();
@@ -253,8 +296,7 @@ int main()
         switch (mainMenu.curState)
         {
         case MAIN:
-        aspectRatio(menuCamera, window.getSize().x, window.getSize().y);
-        window.setView(menuCamera);
+        window.setView(window.getDefaultView()); //sets camera to default view rather than where the player WAS.
             window.draw(mainMenu.XLogoSprite);
             window.draw(mainMenu.logoSprite); //draws logo
             drawMenuSelection(mainMenu, window);
@@ -274,16 +316,15 @@ int main()
             if (event.key.code == Keyboard::C) 
             {
                 playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
-                playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
             } //debugging
             inputhandler(playerst, dt,windowmag); 
             animationhandler(playerst, dt);
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
-            // for(int i = 0 ; i < blocks ; i++)
-            // {
-            //     window.draw(ground[i].gnd);
-            // }
+            for(int i = 0 ; i < blocks ; i++)
+            {
+                window.draw(ground[i].gnd);
+            }
           
             //window.clear(); is this redundent?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
@@ -318,12 +359,37 @@ int main()
          for(int i = 0; i < 100; i++)
 
           {
-            if(enemy1[i].alive)
-            window.draw(enemy1[i].enemy1Spr);
+            if(dEnemy[i].alive)
+            window.draw(dEnemy[i].enemySpr);
           }
 
+dEnemyBullet.timer += dt;
+if(dEnemyBullet.timer >= 3.0f)
+{
+    dEnemyBullet.timer = 0.f;
+    shouting();
+}
 
-            //events of game go here
+for(int i = 0 ; i < 2 ; i++)
+{
+
+
+if(dEnemyBullet.isthere)
+    {
+        dEnemyBullet.shape.move(
+            dEnemyBullet.speed * dEnemyBullet.direction, 0
+        );
+
+        window.draw(dEnemyBullet.shape);
+        if (dEnemyBullet.shape.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth  || dEnemyBullet.shape.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth) {
+                
+                continue;;
+            }
+        }
+    }
+    
+
+//events of game go here
             break;
             
 
@@ -617,89 +683,59 @@ void check_invincibility(player& playerst,float dt){
     }
     
 }
-
-void handleIntersection(player& playerst , float &dt) {
-    playerst.isground = false;
-  // Platfrom-Player
-  for(int i = 0 ; i < blocks ; i++)
-  {
-    if (playerst.megamanSpr.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
-      // Set player vy = 0;
-      if(playerst.Vy >= 0)
-      {
-      playerst.isground = true;
-      }
-}
-
-  // Wall-Player : Set player vx = 0;
-
-  // Enemy-player : Make the player get hit
-
-  // Enemy-Platform
-
-  // Enemy-Wall
-}
-}
-void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset){
-        //cout << Mouse::getPosition(window).x << " " << Mouse::getPosition(window).y << endl; //debugging
-        //will move to a function later
-        const float MAP_WIDTH = 15400.f; 
-        const float MAP_HEIGHT = 600.f;
-        const float MAP_START_X = 200.f;
-        const float MAP_START_Y = 0.f;
-        //updated map logic with limits
-        float camX = playerst.megamanSpr.getPosition().x;
-        float camY = playerst.megamanSpr.getPosition().y;
-
-        // calculate the boundary limits
-        float minX = MAP_START_X + (windowWidth / 2.0f) + LeftOffset;
-        float maxX = (MAP_START_X + MAP_WIDTH) - (windowWidth / 2.0f) - RightOffset;
-
-        float minY = MAP_START_Y + (windowHeight / 2.0f) + UpOffset;
-        float maxY = (MAP_START_Y + MAP_HEIGHT) - (windowHeight / 2.0f) - DownOffset;
-        if (camX < minX) {
-            camX = minX; 
-        } 
-        else if (camX > maxX) {
-            camX = maxX; 
-        }
-
-        if (camY < minY) {
-            camY = minY; 
-        } 
-        else if (camY > maxY) {
-            camY = maxY; 
-        }
-        else{
-            camX = playerst.megamanSpr.getPosition().x;
-            camY = playerst.megamanSpr.getPosition().y;
-        }
-        camera.setCenter(camX, camY);
-    
-}
-View aspectRatio(View view, float windowWidth, float windowHeight) {
-    float targetAspectRatio = 4.0f / 3.0f;
-    float windowAspectRatio = windowWidth / windowHeight;
-    float vpWidth = 1.0f, vpHeight = 1.0f, vpLeft = 0.0f, vpTop = 0.0f;
-
-    if (windowAspectRatio > targetAspectRatio) { //If actual ratio is wider than target ratio
-        vpWidth = targetAspectRatio / windowAspectRatio; // percentage of the width to use based on the ratio of the two aspect ratios
-        vpLeft = (1.0f - vpWidth) / 2.0f; // centering the viewport horizontally so that the ratio percentage shown starts from middle
-    }
-    else {  // if actual ratio is taller than target ratio
-        vpHeight = windowAspectRatio / targetAspectRatio; // percentage of the height to use based on the ratio of the two aspect ratios
-        vpTop = (1.0f - vpHeight) / 2.0f; //centering the viewport vertically so that the ratio percentage shown starts from middle
-    }
-
-    view.setViewport(FloatRect(vpLeft, vpTop, vpWidth, vpHeight));
-    return view;
-}
-void enemystats(enemy& enemy1,float xpos)
+void enemystatus(enemy& denemy,float xpos)
 {
- enemy1.enemy1Texture.loadFromFile("D:\\SNES - Mega Man X - Enemies - Enemies 1.png");
- enemy1.enemy1Spr.setTexture(enemy1.enemy1Texture); //assigning the texture to the sprite so that we can use it in the game loop
- enemy1.enemy1Spr.setOrigin(enemy1.framewidth	 / 2.0f, enemy1.frameheight / 2.0f);	
- enemy1.enemy1Spr.setScale(4.0f, 4.0f);  
- enemy1.enemy1Spr.setPosition(xpos, 325.0f);
+ denemy.enemyTexture.loadFromFile("D:\\SNES - Mega Man X - Enemies - Enemies 1.png");
+ denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
+ denemy.enemySpr.setOrigin(denemy.framewidth	 / 2.0f, denemy.frameheight / 2.0f);	
+ denemy.enemySpr.setScale(4.0f, 4.0f);  
+ denemy.enemySpr.setPosition(xpos, 325.0f);
 
+}
+void enemydetection(enemy& dEnemy , player& playerst)
+{
+
+    if(playerst.megamanSpr.getPosition().x <dEnemy.enemySpr.getPosition().x && playerst.megamanSpr.getPosition().x > dEnemy.enemySpr.getPosition().x - dEnemy.detectionRange)
+       
+       dEnemy.isActive = true;
+   
+}
+void enemybulletstatus(bullet& enemybullet)
+{
+    enemybullet.bullet2D.x = 20;
+    enemybullet.bullet2D.y = 20;
+    enemybullet.shape.setOrigin(enemybullet.shape.getGlobalBounds().width/2 , enemybullet.shape.getGlobalBounds().height/2);
+    enemybullet.shape.setSize(enemybullet.bullet2D);
+    enemybullet.shape.setFillColor(Color::Blue);
+enemybullet.shape.setPosition(1000, 325);
+}
+void shouting()
+{
+    enemydetection(dEnemy[0], playerst);
+
+    if(dEnemy[0].isActive)
+    {
+        for(int i = 0; i < 2; i++)
+        {
+            dEnemyBullet.isthere = true;
+ 
+        if (dEnemyBullet.isthere) 
+        {
+            void update(float dt);
+            dEnemyBullet.shape.setPosition(
+                dEnemy[0].enemySpr.getPosition().x,
+                dEnemy[0].enemySpr.getPosition().y
+            );
+    
+            if(dEnemy[0].enemySpr.getScale().x > playerst.megamanSpr.getScale().x)
+            
+                dEnemyBullet.direction = -1;
+            
+            else
+                dEnemyBullet.direction = 1;
+             
+        }
+
+        }
+    }
 }

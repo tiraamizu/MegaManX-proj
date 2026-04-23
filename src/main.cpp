@@ -1,3 +1,4 @@
+
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
@@ -8,10 +9,10 @@
 using namespace std;
 using namespace sf;
 #define MAX_ITEM_NO 10
-#define nbullets 2// number of bullets that the window can show , not the magazine
-#define n_enemys 100
+#define nbullets 10// number of bullets that the window can show , not the magazine
 const float gravity = 0.5f;
 const int blocks = 100;
+
 
 
 enum GameState { MAIN, OPTIONS, GAME };
@@ -39,8 +40,11 @@ struct MenuData {
     Sprite logoSprite, XLogoSprite;
     GameState curState = MAIN;
 };
+
 //megaman struct
+
 View camera(FloatRect(0, 0, windowWidth, windowHeight));
+
 struct player
 {
 	Texture megamanTexture;
@@ -60,9 +64,9 @@ struct player
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
     bool invincible=true;
-	bool moving;
+	bool moving=false;
     bool isground = false;
-    float jumpstrength = -600.f;
+    float jumpstrength = -300.f;
 		
 } playerst;
 
@@ -75,17 +79,18 @@ struct enemy {
     float detectionRange = 450.f;
     bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
     bool alive = true;
-} dEnemy[n_enemys];
+} dEnemy;                 //dEnemy[n_enemys] ;
     
  struct bullet
 {
     RectangleShape shape;
-    float speed =1.f ;
+    float speed =500.f;
     Vector2f bullet2D;
     int direction = 1;  
-    bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
-    //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
-    // make the slot has a bullet , to sum it up it create the bullet
+    bool isthere = false;
+    /*this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
+    if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
+     make the slot has a bullet , to sum it up it create the bullet*/
 
 }prj;
 
@@ -93,18 +98,12 @@ struct enemy {
 {
 
     RectangleShape shape;
-    float speed =0.2f ;
+    float speed =800.f ;
     Vector2f bullet2D;
     int direction = 1;  
-    bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
-    //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
-    // make the slot has a bullet , to sum it up it create the bullet
-float timer = 0.0f;
-    void update(float dt) {
-        if (isthere) {
-            shape.move(speed * direction * dt, 0);
-        }
-    }
+    bool isthere = false;
+    float timer = 0.0f;
+
 
 }dEnemyBullet;
 
@@ -133,8 +132,8 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 
 //2. Game function declarations
 void playerstats(player& playerst);
-void enemystatus(enemy& dEnemy, float xpos);
-void inputhandler(player& playerst, float dt , bullet windowmag[]);
+void enemystatus(enemy& dEnemy);
+void inputhandler(player& playerst, float dt );
 void animationhandler(player& playerst, float dt);
 void bulletstates(bullet& prj);
 void Gravity(player& playerst, float &dt);
@@ -142,10 +141,11 @@ void createBlock(int index, float x, float y, float width, float height);
 void playerhitbox_pos(player& playerst);
 void check_invincibility(player& playerst,float dt);
 void handleIntersection(player& playerst , float &dt);
-void inputhandler(player& playerst, float dt , bullet windowmag[]);
-void bulletstates(bullet& prj);
 void enemybulletstatus(enemybullet& dEnemyBullet);
-void shouting();
+void shooting(enemybullet& dEnemyBullet,player& playerst, float dt , enemy& dEenmy);
+void update(player& playerst ,enemybullet& dEnemyBullet , float dt );
+void enemydetection(enemy& dEnemy , player& playerst);
+
 void handleIntersection(player& playerst , float &dt) {
     playerst.isground = false;
   // Platfrom-Player
@@ -196,12 +196,15 @@ int main()
 	Clock clock;
 	// creating our megaman with the struct stats
 	playerstats(playerst);
+    enemystatus(dEnemy);
 
-    float spacing = 1500.f; 
-    for(int i = 0; i <n_enemys; i++)
-     {
-       enemystatus(dEnemy[i], 1000.0f + (i * spacing)); //spawns enemys in a line with a spacing of 2500 pixels between each enemy, and the y position is the same as megaman's y position so that they are on the same level
-     }
+    //float spacing = 1500.f; 
+    // for(int i = 0; i <n_enemys; i++)
+    // {
+    //    enemystatus(dEnemy, 1000.0f + (i * spacing)); //spawns enemys in a line with a spacing of 2500 pixels between each enemy, and the y position is the same as megaman's y position so that they are on the same level
+    // }
+    //enemystatus(dEnemy, 1000.0f + (spacing)); //spawns enemys in a line with a spacing of 2500 pixels between each enemy, and the y position is the same as megaman's y position so that they are on the same level
+
 
 
     bullet windowmag[nbullets];//creating the array of struct 
@@ -223,7 +226,11 @@ int main()
     {
         bulletstates(windowmag[i]);//this set up all the empty bullets with all of the bulletstates intializations
     }
-
+    // for(int i = 0; i < 2; i++)
+    // {
+    //     enemybulletstatus(dEnemyBullet);
+    // }
+    enemybulletstatus(dEnemyBullet);
     //Password
     // (TBD
 
@@ -231,11 +238,6 @@ int main()
     Keyboard::Key interractionButton = Keyboard::Z;
     Event event;
    
-for(int i = 0; i < 2; i++)
-{
-    dEnemyBullet.shape.setSize(Vector2f(20,20));
-    dEnemyBullet.shape.setFillColor(Color::Blue);
-}
 
     while (window.isOpen())
     {
@@ -287,6 +289,7 @@ for(int i = 0; i < 2; i++)
 
                 }
             }
+            
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
         }
 
@@ -309,6 +312,7 @@ for(int i = 0; i < 2; i++)
         case GAME:
             window.setView(camera);
             window.draw(map1.mapSprite);
+
             if (event.key.code == Keyboard::X) 
             {
                 mainMenu.curState = MAIN;
@@ -317,7 +321,7 @@ for(int i = 0; i < 2; i++)
             {
                 playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
             } //debugging
-            inputhandler(playerst, dt,windowmag); 
+            inputhandler(playerst, dt); 
             animationhandler(playerst, dt);
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
@@ -325,7 +329,11 @@ for(int i = 0; i < 2; i++)
             {
                 window.draw(ground[i].gnd);
             }
-          
+
+            shooting(dEnemyBullet, playerst, dt , dEnemy);
+            window.draw(dEnemy.enemySpr);
+            window.draw(dEnemyBullet.shape);
+
             //window.clear(); is this redundent?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
             for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
@@ -333,7 +341,7 @@ for(int i = 0; i < 2; i++)
             {
                 if(windowmag[i].isthere)
                 {
-                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction, 0);// here is the FIRING 
+                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction*dt, 0);// here is the FIRING 
                     //this function does fire the bullet in the direction that we condifiermed in the directionfunction inside the inputhandler  
                     
                     //so that the bullet fire in the direction the character is  facing 
@@ -356,38 +364,21 @@ for(int i = 0; i < 2; i++)
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
         
-         for(int i = 0; i < 100; i++)
+        
 
-          {
-            if(dEnemy[i].alive)
-            window.draw(dEnemy[i].enemySpr);
-          }
+          
+            
+            
+          
 
-dEnemyBullet.timer += dt;
-if(dEnemyBullet.timer >= 3.0f)
-{
-    dEnemyBullet.timer = 0.f;
-    shouting();
-}
-
-for(int i = 0 ; i < 2 ; i++)
-{
+            //dEnemyBullet.timer += dt;
+// if(dEnemyBullet.timer >= 3.0f)
+// {
+//     dEnemyBullet.timer = 0.f;
+//     shooting();
+// }
 
 
-if(dEnemyBullet.isthere)
-    {
-        dEnemyBullet.shape.move(
-            dEnemyBullet.speed * dEnemyBullet.direction, 0
-        );
-
-        window.draw(dEnemyBullet.shape);
-        if (dEnemyBullet.shape.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth  || dEnemyBullet.shape.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth) {
-                
-                continue;;
-            }
-        }
-    }
-    
 
 //events of game go here
             break;
@@ -578,7 +569,7 @@ void playerhitbox_pos(player& playerst){
     playerst.hitbox.setPosition(playerst.Pos_Tracker);
 }
 //~~~~~~~~~~~~~~~megaman buttons and input handler~~~~~~~~~~~~~~~~~~~~~~
-void inputhandler(player& playerst, float dt ,bullet windowmag[])
+void inputhandler(player& playerst, float dt)
 {
 	playerst.moving = false;
 
@@ -613,24 +604,29 @@ void inputhandler(player& playerst, float dt ,bullet windowmag[])
 //~~~~~~~~~~~~~~~~megaman frames and deltatime handler~~~~~~~~~~~~~~~~~~~~~~
 void animationhandler(player& playerst, float dt)
 {
-	if (playerst.moving)//this if condition is wrote so that when the player click any movement botton the code reads it so that the 
-		// frames update
+	if (playerst.moving)
+    /*this if condition is wrote so that when the player click any movement botton the code reads it so that the 
+	 frames update*/
 	{
-	    playerst.timer += dt; // this line add the  fraction of time we pressed on the button to our timer so
-		//that each frame update is presicely know or determined according to our frame duration constant
+	    playerst.timer += dt; 
+        // this line add the fraction of time we pressed on the button to our timer so
+		//that each frame update is presicely known or determined according to our frame duration constant
 		// btw we assinged the timer to be each 0.0f this means it will act as a real timer and reads every 0.1 s the player
 		// click on the button
 
 
-		if (playerst.timer >= playerst.frameduration)// this condition is only made for the time being because since we only now have 6 frmaes 
-			// and each frame frameduartion of 0.1 , this means that each time the timer goes up by 0.1 the the frame is updated 
-			// and the game loop after 0.1 s will display the new frame and in out case since we only have 6 frames then after
-			// each 0.6 s the frame loop resets  and that's what this condition is saying :DD
+		if (playerst.timer >= playerst.frameduration)
+        // this condition is only made for the time being because since we only now have 6 frmaes 
+		// and each frame frameduartion of 0.1 , this means that each time the timer goes up by 0.1 the the frame is updated 
+		// and the game loop after 0.1 s will display the new frame and in out case since we only have 6 frames then after
+		// each 0.6 s the frame loop resets  and that's what this condition is saying :DD
 		{
 			playerst.timer = 0;
 			playerst.i++;
             if (playerst.i >= 6)
-				playerst.i = 0;
+			{
+                playerst.i = 0;
+            }
 			playerst.megamanSpr.setTextureRect(IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight));
 
 		}
@@ -670,7 +666,7 @@ void createBlock(int index, float x, float y, float width, float height) {
     ground[index].gnd.setPosition(x, y);
 }
 
-// Platform Function syntax: createBlock(block you want to start from (Starting block), number of blocks you want to add starting from aforementioned Starting Block, startingXPosition, yPos, Spacing Between Blocks);
+// Platform Function syntax: createBlock(block you want to start from (Starting block), number of blocks you want to add starting from aforementioned Starting Block,  yPos, Spacing Between Blocks);
 
 void check_invincibility(player& playerst,float dt){
     if (playerst.invincible==true &&playerst.inv_timer>=0)
@@ -683,59 +679,93 @@ void check_invincibility(player& playerst,float dt){
     }
     
 }
-void enemystatus(enemy& denemy,float xpos)
+
+void enemystatus(enemy& denemy)
 {
+ denemy.enemySpr.setPosition(1089.92f ,325.f );
  denemy.enemyTexture.loadFromFile("D:\\SNES - Mega Man X - Enemies - Enemies 1.png");
  denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
- denemy.enemySpr.setOrigin(denemy.framewidth	 / 2.0f, denemy.frameheight / 2.0f);	
+ denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
  denemy.enemySpr.setScale(4.0f, 4.0f);  
- denemy.enemySpr.setPosition(xpos, 325.0f);
+ 
 
 }
 void enemydetection(enemy& dEnemy , player& playerst)
 {
 
-    if(playerst.megamanSpr.getPosition().x <dEnemy.enemySpr.getPosition().x && playerst.megamanSpr.getPosition().x > dEnemy.enemySpr.getPosition().x - dEnemy.detectionRange)
-       
-       dEnemy.isActive = true;
-   
-}
-void enemybulletstatus(bullet& enemybullet)
-{
-    enemybullet.bullet2D.x = 20;
-    enemybullet.bullet2D.y = 20;
-    enemybullet.shape.setOrigin(enemybullet.shape.getGlobalBounds().width/2 , enemybullet.shape.getGlobalBounds().height/2);
-    enemybullet.shape.setSize(enemybullet.bullet2D);
-    enemybullet.shape.setFillColor(Color::Blue);
-enemybullet.shape.setPosition(1000, 325);
-}
-void shouting()
-{
-    enemydetection(dEnemy[0], playerst);
-
-    if(dEnemy[0].isActive)
+    if(playerst.megamanSpr.getPosition().x <dEnemy.enemySpr.getPosition().x + dEnemy.detectionRange && playerst.megamanSpr.getPosition().x > dEnemy.enemySpr.getPosition().x - dEnemy.detectionRange)
     {
-        for(int i = 0; i < 2; i++)
+        dEnemy.isActive = true;
+        if(playerst.megamanSpr.getPosition().x< dEnemy.enemySpr.getPosition().x)
+        {
+            dEnemy.enemySpr.setScale(4.0f , 4.0f);
+        }
+        else
+        {
+            dEnemy.enemySpr.setScale(-4.0f , 4.0f);
+        }
+    }  
+    else
+    {
+        dEnemy.isActive = false;
+    }
+
+}
+void enemybulletstatus(enemybullet& dEnemyBullet)
+{
+    dEnemyBullet.bullet2D.x = 20;
+    dEnemyBullet.bullet2D.y = 20;
+    dEnemyBullet.shape.setOrigin(dEnemyBullet.shape.getGlobalBounds().width/2 , dEnemyBullet.shape.getGlobalBounds().height/2);
+    dEnemyBullet.shape.setSize(dEnemyBullet.bullet2D);
+    dEnemyBullet.shape.setFillColor(Color::Blue);
+     dEnemyBullet.shape.setPosition(1089.92f ,325.f);
+}
+void update(player& playerst ,enemybullet& dEnemyBullet , float dt )
+{
+        if(dEnemyBullet.isthere)
+        {
+            dEnemyBullet.shape.move(dEnemyBullet.speed * dEnemyBullet.direction* dt , 0);
+        }
+        if (dEnemyBullet.shape.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth  || dEnemyBullet.shape.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth) {
+    
+            dEnemyBullet.isthere = false;
+        }
+
+
+}
+
+void shooting(enemybullet& dEnemyBullet,player& playerst,float dt , enemy& dEnemy )
+{
+    enemydetection(dEnemy, playerst );
+
+    if(dEnemy.isActive)
+    {
+
+        
+        
+        if (dEnemy.isActive && !dEnemyBullet.isthere) 
         {
             dEnemyBullet.isthere = true;
- 
-        if (dEnemyBullet.isthere) 
-        {
-            void update(float dt);
             dEnemyBullet.shape.setPosition(
-                dEnemy[0].enemySpr.getPosition().x,
-                dEnemy[0].enemySpr.getPosition().y
+                dEnemy.enemySpr.getPosition().x,
+                dEnemy.enemySpr.getPosition().y
             );
     
-            if(dEnemy[0].enemySpr.getScale().x > playerst.megamanSpr.getScale().x)
-            
+            if(dEnemy.enemySpr.getPosition().x > playerst.megamanSpr.getPosition().x)
+            {
+                            
                 dEnemyBullet.direction = -1;
-            
+            }
             else
+            {
                 dEnemyBullet.direction = 1;
              
+            }
         }
 
-        }
+        
     }
+    update(playerst,dEnemyBullet , dt);
+
+
 }

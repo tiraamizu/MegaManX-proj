@@ -76,7 +76,7 @@ struct enemy {
   	int framewidth = 50; // each frame height and width don't ask how i calculated it
 	int frameheight =100;
     bool isground = true;
-    float detectionRange = 450.f;
+    float detectionRange = 425.f;
     bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
     bool alive = true;
 } dEnemy;                 //dEnemy[n_enemys] ;

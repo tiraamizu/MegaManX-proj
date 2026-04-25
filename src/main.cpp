@@ -86,12 +86,18 @@ struct player
 struct enemy {
     Texture enemyTexture;
 	Sprite enemySpr;
-  	int framewidth = 50; // each frame height and width don't ask how i calculated it
-	int frameheight =100;
+
     bool isground = true;
-    float detectionRange = 450.f;
+    float detectionRange = 350.f;
     bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
     bool alive = true;
+    float timer= 0.0f;
+    float frameduration = 0.15f;
+    int framewidth = 50; // each frame height and width don't ask how i calculated it 
+	int frameheight = 65;
+    int eIndex = 0;
+    bool goingForward = true; // ping-pong direction flag
+    bool hasFired    = false;
 } dEnemy; 
 struct bullet
 {
@@ -151,6 +157,7 @@ void enemydetection(enemy& dEnemy , player& playerst);
 void health_blockout(player& playerst,RectangleShape& blackout);
 void inputhandler(player& playerst, float dt );
 void animationhandler(player& playerst, float dt);
+void enemyAnimation(enemy& dEnemy, float dt);
 
 void Gravity(player& playerst, float &dt);
 void createBlock(int index, float x, float y, float width, float height);
@@ -173,7 +180,7 @@ int main()
     blackout.setPosition(31.f,141.f);
     
     int i = 0;
-
+    int eindex = 0;
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
 
     MenuData mainMenu;
@@ -237,9 +244,11 @@ int main()
     Event event;
     while (window.isOpen())
     {
+
         dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         if (dt > 0.05f) {
         dt = 0.05f; 
+        
         } // dt limiter to prevent lagspikes from breaking some game stuff
         while (window.pollEvent(event))
         //aspect ratio logic
@@ -329,28 +338,26 @@ int main()
             animationhandler(playerst, dt);
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
+            enemyAnimation(dEnemy , dt);
             shooting(dEnemyBullet, playerst, dt , dEnemy);
             camBounds(70, 40, 40, 60);
             carMovement(map1.car1Spr, -200.f, dt);
             carMovement(map1.car2Spr, -200.f, dt);
-            //cout<<playerst.megamanSpr.getPosition().x<<" , "<<playerst.megamanSpr.getPosition().y<<endl;
-            // for(int i = 0 ; i < blocks ; i++)
-            // {
-            //     window.draw(ground[i].gnd);
-            // }
+
           
             //window.clear(); is this redundent?
-            window.draw(dEnemy.enemySpr);
-            window.draw(dEnemyBullet.shape);
             window.draw(map1.backgroundSpr[0]);
             window.draw(map1.mapSpr);
+            window.draw(dEnemy.enemySpr);
+            window.draw(dEnemyBullet.shape);
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
             for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
             //this loop reads the array and locate the slot we want to fire , then it fire it and reset this bullet condition or bool
             {
                 if(windowmag[i].isthere)
                 {
-                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction, 0);// here is the FIRING 
+                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction * dt, 0);// here is the FIRING 
                     //this function does fire the bullet in the direction that we condifiermed in the directionfunction inside the inputhandler  
                     
                     //so that the bullet fire in the direction the character is  facing 
@@ -739,12 +746,12 @@ void handleIntersection(player& playerst , float &dt) {
 }
 void enemystatus(enemy& denemy)
 {
- denemy.enemySpr.setPosition(1089.92f ,299.082f );
- denemy.enemyTexture.loadFromFile(textures/SNES-Mega Man X-Enemies1.png);
+ denemy.enemySpr.setPosition( 1053.89f , 220.f );
+ denemy.enemyTexture.loadFromFile("textures\\SNES - Mega Man X - Enemies full2.png");
  denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
  denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
  denemy.enemySpr.setScale(4.0f, 4.0f);  
- 
+denemy.enemySpr.setTextureRect(IntRect(0, 0, denemy.framewidth, denemy.frameheight));
 
 }
 void enemydetection(enemy& dEnemy , player& playerst)
@@ -755,11 +762,11 @@ void enemydetection(enemy& dEnemy , player& playerst)
         dEnemy.isActive = true;
         if(playerst.megamanSpr.getPosition().x< dEnemy.enemySpr.getPosition().x)
         {
-            dEnemy.enemySpr.setScale(4.0f , 4.0f);
+            dEnemy.enemySpr.setScale(4.f , 4.f);
         }
         else
         {
-            dEnemy.enemySpr.setScale(-4.0f , 4.0f);
+            dEnemy.enemySpr.setScale(-4.f , 4.f);
         }
     }  
     else
@@ -767,7 +774,7 @@ void enemydetection(enemy& dEnemy , player& playerst)
         dEnemy.isActive = false;
     }
 
-}
+}   
 void enemybulletstatus(enemybullet& dEnemyBullet)
 {
     dEnemyBullet.bullet2D.x = 20;
@@ -797,15 +804,17 @@ void shooting(enemybullet& dEnemyBullet,player& playerst,float dt , enemy& dEnem
     if(dEnemy.isActive)
     {
 
+        bool atFireFrame = (dEnemy.eIndex == 11 && dEnemy.goingForward);
         
-        
-        if (dEnemy.isActive && !dEnemyBullet.isthere) 
+        if (!dEnemyBullet.isthere && !dEnemy.hasFired && atFireFrame) 
         {
             dEnemyBullet.isthere = true;
-            dEnemyBullet.shape.setPosition(
-                dEnemy.enemySpr.getPosition().x,
-                dEnemy.enemySpr.getPosition().y
-            );
+            dEnemy.hasFired = true; 
+            
+            dEnemyBullet.shape.setPosition(dEnemy.enemySpr.getPosition().x,dEnemy.enemySpr.getPosition().y);
+                
+                
+            
     
             if(dEnemy.enemySpr.getPosition().x > playerst.megamanSpr.getPosition().x)
             {
@@ -824,6 +833,61 @@ void shooting(enemybullet& dEnemyBullet,player& playerst,float dt , enemy& dEnem
     update(playerst,dEnemyBullet , dt);
 
 
+}
+void enemyAnimation(enemy& dEnemy, float dt)
+{   
+    int raw ;
+    int col;
+
+    if (dEnemy.isActive)
+    {
+
+        dEnemy.timer+=dt;
+        
+
+        if(dEnemy.timer>=dEnemy.frameduration)
+        {
+            dEnemy.timer = 0;
+            if(dEnemy.goingForward)
+            {
+                dEnemy.eIndex++;
+                       
+                if (dEnemy.eIndex >= 12)          // hit the last frame → reverse
+                {
+                    dEnemy.goingForward = false;
+                    dEnemy.eIndex = 10;  
+                }
+            }
+            else
+            {
+                dEnemy.eIndex--;
+                if (dEnemy.eIndex < 0)            // back at start → go forward again
+                {
+                    dEnemy.goingForward = true;
+                    dEnemy.eIndex = 1;
+                    dEnemy.hasFired = false;  //!!!!    // ← reset so bullet can fire next cycle
+                }
+            }
+        }
+    
+        if(dEnemy.eIndex<7)
+        {
+            raw = 0;
+            col = dEnemy.eIndex;
+
+        }
+        else
+        {
+            raw =1;
+            col =dEnemy.eIndex-7;//!!!!!
+        }
+        dEnemy.enemySpr.setTextureRect(IntRect(col * dEnemy.framewidth,raw * dEnemy.frameheight,dEnemy.framewidth,dEnemy.frameheight));
+        
+        
+        
+        
+        
+    }
 }
 //CAMERA BOUNDS FUNCTION
 void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset){

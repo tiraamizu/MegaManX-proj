@@ -64,7 +64,7 @@ struct player
     RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
     Texture healthbar_text;
     RectangleShape healthbar;
-	float Vx = 800.f;
+	float Vx = 80.f;
     float Vy = 0.0f;
     float inv_timer=3.0;
     Vector2f Pos_Tracker; 
@@ -747,7 +747,7 @@ void handleIntersection(player& playerst , float &dt) {
 void enemystatus(enemy& denemy)
 {
  denemy.enemySpr.setPosition( 1053.89f , 220.f );
- denemy.enemyTexture.loadFromFile("textures\\SNES - Mega Man X - Enemies full2.png");
+ denemy.enemyTexture.loadFromFile("textures/enemies_full2.png");
  denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
  denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
  denemy.enemySpr.setScale(4.0f, 4.0f);  

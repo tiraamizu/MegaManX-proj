@@ -170,7 +170,7 @@ View aspectRatio(View view, float windowWidth, float windowHeight);
 void carMovement(Sprite& car, float carSpeed, float dt);
 //temp functions
 void damage (player& playerst);
-void heal (player& playerst);
+void heal(player& playerst);
 
 int main()
 {   //blackout that blocks healthbar to make it seem gone
@@ -346,10 +346,12 @@ int main()
 
           
             //window.clear(); is this redundent?
+            
             window.draw(map1.backgroundSpr[0]);
             window.draw(map1.mapSpr);
             window.draw(dEnemy.enemySpr);
             window.draw(dEnemyBullet.shape);
+            
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
             for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
@@ -632,8 +634,8 @@ void inputhandler(player& playerst, float dt )
 		playerst.megamanSpr.move(-playerst.Vx * dt, 0);
 		playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
 		playerst.moving = true;
-	
         
+            
     }
     
     else//idle (state movement)
@@ -701,7 +703,7 @@ void createBlock(int index, float x, float y, float width, float height) {
 
     ground[index].gnd.setSize(Vector2f(width, height));
         
-    ground[index].gnd.setOrigin(width / 2.0f, height / 2.0f);
+        
 
     ground[index].gnd.setPosition(x, y);
 }
@@ -747,7 +749,7 @@ void handleIntersection(player& playerst , float &dt) {
 void enemystatus(enemy& denemy)
 {
  denemy.enemySpr.setPosition( 1053.89f , 220.f );
- denemy.enemyTexture.loadFromFile("textures\\SNES - Mega Man X - Enemies full2.png");
+ denemy.enemyTexture.loadFromFile("textures/SNES - Mega Man X - Enemies full2.png");
  denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
  denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
  denemy.enemySpr.setScale(4.0f, 4.0f);  

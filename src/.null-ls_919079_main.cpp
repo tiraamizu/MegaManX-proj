@@ -77,12 +77,9 @@ struct player
 	int frameheight = sheet_height;
 	int i = 0; // our frame counter
   bool invincible=true;
-  enum dir {NONE,LEFT,RIGHT};
-  dir toucheswall = NONE; 
-  bool moving = false;
-  bool touchesground = false;
-  bool issliding = false;
-  float jumpstrength = -500.f;
+  bool moving;
+  bool isground = false;
+  float jumpstrength = -300.f;
   int health =19; //max hp is 19
 		
 } playerst;
@@ -90,7 +87,7 @@ struct enemy {
     Texture enemyTexture;
     Sprite enemySpr;
 
-    bool touchesground = true;
+    bool isground = true;
     float detectionRange = 350.f;
     bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
     bool alive = true;
@@ -267,10 +264,10 @@ int main()
                 window.close();
             }
             //jump  
-            if(event.type == Event::KeyPressed && event.key.code == Keyboard::Space && playerst.touchesground) 
+            if(event.type == Event::KeyPressed && event.key.code == Keyboard::Space && playerst.isground) 
             {
                 playerst.Vy = playerst.jumpstrength;
-                playerst.touchesground = false;
+                playerst.isground = false;
             }
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
             if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
@@ -338,8 +335,8 @@ int main()
                 playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
             } //debugging
             inputhandler(playerst, dt); 
-            handleIntersection(playerst, dt);
             animationhandler(playerst, dt);
+            handleIntersection(playerst, dt);
             Gravity(playerst, dt);
             enemyAnimation(dEnemy , dt);
             shooting(dEnemyBullet, playerst, dt , dEnemy);
@@ -619,25 +616,35 @@ void playerhitbox_pos(player& playerst){
 //~~~~~~~~~~~~~~~megaman buttons and input handler~~~~~~~~~~~~~~~~~~~~~~
 void inputhandler(player& playerst, float dt )
 {
-  playerst.moving = false;
+	playerst.moving = false;
 
-  if (Keyboard::isKeyPressed(Keyboard::Right) && playerst.toucheswall != playerst.RIGHT) {
-    playerst.megamanSpr.move(playerst.Vx * dt, 0);// to calculate distance moved for each frame
-    playerst.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want
-                                              // note the ngeative direction changes based on the TEXTURE direction which we implemented
-    playerst.moving = true; 
-  }
-  else if (Keyboard::isKeyPressed(Keyboard::Left) && playerst.toucheswall != playerst.LEFT)	{
-    //distance covered
-    playerst.megamanSpr.move(-playerst.Vx * dt, 0);
-    playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
-    playerst.moving = true; 
-  }
-  else { 
-    playerst.i = 0;
-    playerst.timer = 0.0f;
-    playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));
-  }
+	if (Keyboard::isKeyPressed(Keyboard::Right))
+	{
+		playerst.megamanSpr.move(playerst.Vx * dt, 0);// to calculate distance moved for each frame
+		playerst.megamanSpr.setScale(2.0f, 2.0f); // the scale to make the character face which direction we want
+		// note the ngeative direction changes based on the TEXTURE direction which we implemented
+		playerst.moving = true;
+        
+	}
+	else if (Keyboard::isKeyPressed(Keyboard::Left))
+	{
+		//distance covered
+		playerst.megamanSpr.move(-playerst.Vx * dt, 0);
+		playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
+		playerst.moving = true;
+	
+        
+    }
+    
+    else//idle (state movement)
+    {
+
+		playerst.i = 0;
+		playerst.timer = 0.0f;
+        playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));
+	}
+
+
 }
 //~~~~~~~~~~~~~~~~megaman frames and deltatime handler~~~~~~~~~~~~~~~~~~~~~~
 void animationhandler(player& playerst, float dt)
@@ -679,16 +686,13 @@ void bulletstates(bullet& prj)
 }
 void Gravity(player& playerst, float &dt)
 {            
-  playerst.megamanSpr.move(0, playerst.Vy *dt);
-  if (playerst.issliding) {
-    playerst.Vy += gravity*0.1*dt;
-  }
-  else if(!playerst.touchesground) {
-    playerst.Vy += gravity * dt; //vf = vi + at for proper gravity that depends on dt to streamline everything.
-  }
-  else {
-    playerst.Vy = 0;
-  }
+            playerst.megamanSpr.move(0, playerst.Vy *dt);
+              if(!playerst.isground){
+                    playerst.Vy += gravity * dt; //vf = vi + at for proper gravity that depends on dt to streamline everything.
+                }
+                else{
+                    playerst.Vy = 0;
+                }
 };
 void createBlock(int index, float x, float y, float width, float height) {
     ground[index].blockwidth = width;
@@ -716,42 +720,34 @@ void check_invincibility(player& playerst,float dt){
     
 }
 
-int checkWallIntersection(int ind) {
+bool checkIntersection(int ind) {
   // Checks if the player are on the same x-axis of the ground, then they intersect vertically. Otherwise, they intersect horizontally
-  // 1 = Player's left touches the wall, 2 = Player's right touches the wall
   auto start = ground[ind].gnd.getPosition().x-0.5*ground[ind].blockwidth;
   auto end = ground[ind].gnd.getPosition().x+0.5*ground[ind].blockwidth;
-  if (playerst.Pos_Tracker.x-end > 0.5*playerst.framewidth) return 1;
-  if (start-playerst.Pos_Tracker.x > 0.5*playerst.framewidth) return 2;
-  return 0;
+  if (start-playerst.Pos_Tracker.x > 0.5*playerst.framewidth || playerst.Pos_Tracker.x-end > 0.5*playerst.framewidth) return false;
+  return true;
 }
 
 void handleIntersection(player& playerst , float &dt) {
-  playerst.touchesground = false;
-  playerst.toucheswall = player::NONE;
-  playerst.issliding = false;
+  playerst.isground = false;
   // Platfrom-Player
   for(int i = 0 ; i < blocks ; i++)
   {
     if (playerst.hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) 
     {
-      // Wall-Player : Set player vx = 0;
-      if (checkWallIntersection(i) == 1) {
-        playerst.toucheswall = player::LEFT;
-      }
-      else if (checkWallIntersection(i) == 2) {
-        playerst.toucheswall = player::RIGHT;
-      }
-      else if (playerst.Vy >= 0)
-      {
-        playerst.touchesground = true;
+      if (checkIntersection(i)) {
         // Set player vy = 0;
+        if(playerst.Vy >= 0)
+        {
+          playerst.isground = true;
+        }
+      }
+      // Wall-Player : Set player vx = 0;
+      else {
+        playerst.Vx = 0;
       }
     }
   }
-  
-  // Sliding
-  if (playerst.touchesground == false && playerst.toucheswall != player::NONE) playerst.issliding = true;
 
   // Enemy-player : Make the player get hit
 

@@ -405,11 +405,7 @@ int main()
             enemyAnimation(dEnemy[i] , dt);
             shooting(dEnemyBullet, playerst, dt , dEnemy[i]);
             window.draw(dEnemy[i].enemySpr);
-                cout << "isActive: " << dEnemy[i].isActive 
-            << " eIndex: " << dEnemy[i].eIndex 
-            << " goingForward: " << dEnemy[i].goingForward
-            << " hasFired: " << dEnemy[i].hasFired
-            << " isthere: " << dEnemyBullet.isthere << endl;
+
             }
             if(dEnemyBullet.isthere)
                 window.draw(dEnemyBullet.bulletSpr);

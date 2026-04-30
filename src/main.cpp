@@ -469,10 +469,10 @@ int main()
             {
                 standFireAnim(playerst, dt);
             }
-             else
-             {
+            else
+            {
                  animationhandler(playerst, dt);
-             }
+            }
           
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
@@ -879,7 +879,7 @@ void enemystatus(enemy& denemy ,float denemypos)
  denemy.enemyTexture.loadFromFile("textures/enemies_full2.png");
  denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
  denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
- denemy.enemySpr.setScale(4.0f, 4.0f);  
+ denemy.enemySpr.setScale(2.5f, 2.5f);  
 denemy.enemySpr.setTextureRect(IntRect({0, 0, denemy.framewidth, denemy.frameheight}));
 
 }
@@ -891,11 +891,11 @@ void enemydetection(enemy& dEnemy , player& playerst)
         dEnemy.isActive = true;
         if(playerst.megamanSpr.getPosition().x< dEnemy.enemySpr.getPosition().x)
         {
-            dEnemy.enemySpr.setScale(4.f , 4.f);
+            dEnemy.enemySpr.setScale(2.5f , 2.5f);
         }
         else
         {
-            dEnemy.enemySpr.setScale(-4.f , 4.f);
+            dEnemy.enemySpr.setScale(-2.5f , 2.5f);
         }
     }  
     else
@@ -919,6 +919,7 @@ void update(player& playerst ,enemybullet& dEnemyBullet , float dt )
         if(dEnemyBullet.isthere)
         {
             dEnemyBullet.bulletSpr.move(dEnemyBullet.speed * dEnemyBullet.direction* dt , 0);
+
             if (dEnemyBullet.bulletSpr.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth  || dEnemyBullet.bulletSpr.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth) 
             {
     
@@ -943,10 +944,11 @@ void shooting(enemybullet& dEnemyBullet,player& playerst,float dt , enemy& dEnem
         {
             dEnemyBullet.isthere = true;
             dEnemy.hasFired = true; 
-            
-            dEnemyBullet.bulletSpr.setPosition(dEnemy.enemySpr.getPosition().x,dEnemy.enemySpr.getPosition().y);
-                
-                
+            Transform enemyTransform = dEnemy.enemySpr.getTransform();
+            Vector2f spawnPos = enemyTransform.transformPoint(40.f, 45.f);
+            dEnemyBullet.bulletSpr.setPosition(spawnPos);
+                        
+
             
     
             if(dEnemy.enemySpr.getPosition().x > playerst.megamanSpr.getPosition().x)

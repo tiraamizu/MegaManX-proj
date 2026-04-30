@@ -17,6 +17,9 @@ const float ratio_health=3.84;
 
 enum GameState { MAIN, OPTIONS, GAME };
 
+//SOUND DECLARATIONS
+// SoundBuffer buffer;
+// Sound shoot;
 //STRUCTS
 
 //Main Window Resolution
@@ -61,7 +64,7 @@ View menuCamera(FloatRect(0, 0, windowWidth, windowHeight));
 View healthUI(FloatRect(0, 0, windowWidth, windowHeight));
 struct player
 {
-	Texture megamanTexture , runFireTexture , jumpTexture , jumpFireTexture, wallSlideTexture;
+	Texture megamanTexture , runFireTexture , jumpTexture , jumpFireTexture, wallSlideTexture, idleTexture;
 	Sprite megamanSpr;
     RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
     Texture healthbar_text;
@@ -72,6 +75,7 @@ struct player
     Vector2f Pos_Tracker; 
 	float frameduration = 0.1f;
     float jumpFramrDuration = 0.12f;
+    float idleAnimDuration = 0.54f;
 	float timer = 0.0f;
 	int sheet_width = 216; // sprite sheet height and width 
 	int sheet_height = 35;
@@ -84,6 +88,7 @@ struct player
     int jumpW=30, jumpH=46, jumpFrames=7;
     int fireJumpW=36, fireJumpH=45, fireJumpFrames=7;
     int wallSlideW = 30, wallSlideH = 44, wallSlideFrames = 5;
+    int idleAnimW = 30, idleAnimH = 35, idleAnimFrames = 3;
 
   bool invincible=true;
   enum dir {NONE,LEFT,RIGHT};
@@ -98,7 +103,7 @@ struct player
 struct enemy {
     Texture enemyTexture;
     Sprite enemySpr;
-
+    bool atFireFrame = false;
     bool touchesground = true;
     float detectionRange = 500.f;
     bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
@@ -192,6 +197,7 @@ void jumpAnim(player& playerst, float dt);
 void standFireAnim(player& playerst, float dt);
 void enemyAnimation(enemy& dEnemy, float dt);
 void wallSlideAnim(player& playerst, float dt);
+void idleAnim(player& playerst, float dt);
 bool pBulletupdate(bullet windowmag[] ,player& playerst ,float dt,RenderWindow& window);
 void enemy2status(newenemy& enemy2, float xpos);
 void Gravity(player& playerst, float &dt);
@@ -318,10 +324,11 @@ int main()
             //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
             if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
             {
+            
                 
- 
                 for(int i = 0 ; i < nbullets ; i++)
                 {
+                   
                     if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
                     {
                         // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
@@ -337,6 +344,9 @@ int main()
                         {
                             windowmag[i].direction = -1;
                         }
+                        //  shoot.setBuffer(buffer);            
+                        //  shoot.play();
+ 
                         Transform megaTransform = playerst.megamanSpr.getTransform();
                         Vector2f spawnPos = megaTransform.transformPoint(30.f, 15.f);
                         windowmag[i].bulletSpr.setPosition(spawnPos);
@@ -436,7 +446,10 @@ int main()
 
             
             bool IsFiring = pBulletupdate(windowmag, playerst, dt, window);
-            if(playerst.issliding)
+            if(!playerst.moving && !IsFiring && playerst.touchesground){
+                idleAnim(playerst, dt);
+            }
+            else if(playerst.issliding)
             {
                 wallSlideAnim(playerst, dt);
             }
@@ -456,10 +469,11 @@ int main()
             {
                 standFireAnim(playerst, dt);
             }
-            else
-            {
-                animationhandler(playerst, dt);
-            }
+             else
+             {
+                 animationhandler(playerst, dt);
+             }
+          
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
             //constants on the screen (aka just health), dont do .draw under it or else it wont function the same as you want
@@ -495,6 +509,10 @@ bool resourcesCheck(MenuData &m) {
     cout << "ERROR: Could not find textures/map.png" << endl;
         return false;
     }
+    // if(!buffer.loadFromFile("sounds/shoot.wav")){
+    //         cout<<"ERR: shoot.wav not found";
+    //         return false;
+    //         }
     if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
@@ -680,6 +698,7 @@ void playerstats(player& playerst) // p for better writing :D
     playerst.jumpTexture.loadFromFile("textures/jump(30-46).png");
     playerst.jumpFireTexture.loadFromFile("textures/firing-jumping(36-45)1.png");
     playerst.wallSlideTexture.loadFromFile("textures/wallSlideAnimation (30x44).png");
+    playerst.idleTexture.loadFromFile("textures/Idle_anim.png");
 
 	playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
 	playerst.megamanSpr.setScale(2.0f, 2.0f);  
@@ -918,9 +937,9 @@ void shooting(enemybullet& dEnemyBullet,player& playerst,float dt , enemy& dEnem
     if(dEnemy.isActive)
     {
 
-        bool atFireFrame = (dEnemy.eIndex == 11 && dEnemy.goingForward);
+        dEnemy.atFireFrame = (dEnemy.eIndex == 11 && dEnemy.goingForward);
         
-        if (!dEnemyBullet.isthere && !dEnemy.hasFired && atFireFrame) 
+        if (!dEnemyBullet.isthere && !dEnemy.hasFired && dEnemy.atFireFrame) 
         {
             dEnemyBullet.isthere = true;
             dEnemy.hasFired = true; 
@@ -1023,6 +1042,27 @@ void runFireAnim(player& playerst , float dt)
         }
     }
     playerst.megamanSpr.setTextureRect(IntRect(playerst.i*playerst.fireRunW,0,playerst.fireRunW,playerst.fireRunH  ));
+}
+void idleAnim(player& playerst , float dt)  
+{
+    if(playerst.megamanSpr.getTexture() != &playerst.idleTexture )
+    {
+        playerst.megamanSpr.setTexture(playerst.idleTexture);
+        playerst.megamanSpr.setOrigin(playerst.idleAnimW/2.f , playerst.idleAnimH/2.f);
+        playerst.i = 0;
+        playerst.timer = 0.0f;
+    }
+    playerst.timer += dt;
+    if (playerst.timer >= playerst.idleAnimDuration) 
+    {
+        playerst.timer = 0.0f;
+        playerst.i++;
+        if (playerst.i >= playerst.idleAnimFrames)
+        {
+            playerst.i =0;
+        }
+    }
+    playerst.megamanSpr.setTextureRect(IntRect(playerst.i*playerst.idleAnimW,0,playerst.idleAnimW,playerst.idleAnimH  ));
 }
 void enemy2status(newenemy& enemy2, float xpos)
 {

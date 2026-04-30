@@ -673,10 +673,10 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 //~~~~~~~~~~~~~~intialize !!megaman texture and sprite function~~~~~~~~~~~~~~~~~~~~~~
 void playerstats(player& playerst) // p for better writing :D
 {
-	playerst.megamanTexture.loadFromFile(textures/running35-34.png);
-	playerst.runFireTexture.loadFromFile(textures/firing-moving(41-36).png);
-    playerst.jumpTexture.loadFromFile(textures/jump(30-46).png);
-    playerst.jumpFireTexture.loadFromFile(textures/firing-jumping(36-45)1.png);
+	playerst.megamanTexture.loadFromFile("textures/running35-34.png");
+	playerst.runFireTexture.loadFromFile("textures/firing-moving(41-36).png");
+    playerst.jumpTexture.loadFromFile("textures/jump(30-46).png");
+    playerst.jumpFireTexture.loadFromFile("textures/firing-jumping(36-45)1.png");
 
 	playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
 	playerst.megamanSpr.setScale(2.0f, 2.0f);  
@@ -757,7 +757,7 @@ void animationhandler(player& playerst, float dt)
 }
 void bulletstates(bullet& prj)
 {
-    prj.bulletTexture.loadFromFile(textures/mmx1-buster.png);
+    prj.bulletTexture.loadFromFile("textures/mmx1-buster.png");
     prj.bulletSpr.setTexture(prj.bulletTexture);
     prj.bullet2D.x = 20;
     prj.bullet2D.y = 20;
@@ -884,7 +884,7 @@ void enemydetection(enemy& dEnemy , player& playerst)
 }   
 void enemybulletstatus(enemybullet& dEnemyBullet)
 {
-    dEnemyBullet.bulletTexture.loadFromFile(textures/enemybullet.png);
+    dEnemyBullet.bulletTexture.loadFromFile("textures/enemybullet.png");
     dEnemyBullet.bulletSpr.setTexture(dEnemyBullet.bulletTexture);
     dEnemyBullet.bulletSpr.setOrigin(
         dEnemyBullet.bulletTexture.getSize().x / 2.f,
@@ -1024,7 +1024,7 @@ void runFireAnim(player& playerst , float dt)
 void enemy2status(newenemy& enemy2, float xpos)
 {
     enemy2.enemy2Spr.setPosition( xpos , 247.f );
-    enemy2.enemy2Texture.loadFromFile(textures/enemyrolling2.png);
+    enemy2.enemy2Texture.loadFromFile("textures/enemyrolling2.png");
     enemy2.enemy2Spr.setTexture(enemy2.enemy2Texture); //assigning the texture to the sprite so that we can use it in the game loop
     enemy2.enemy2Spr.setOrigin(enemy2.framewidth/ 2.0f, enemy2.frameheight / 2.0f);	
     enemy2.enemy2Spr.setScale(4.0f, 4.0f);  

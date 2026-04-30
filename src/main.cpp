@@ -9,6 +9,8 @@ using namespace std;
 using namespace sf;
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
+#define nenemy 2 // number of new enemies (the ones that move horizontally) in the game
+#define n_denenmy 2
 const float gravity = 1000.f;
 const int blocks = 100;
 const float ratio_health=3.84;
@@ -59,23 +61,30 @@ View menuCamera(FloatRect(0, 0, windowWidth, windowHeight));
 View healthUI(FloatRect(0, 0, windowWidth, windowHeight));
 struct player
 {
-	Texture megamanTexture;
+	Texture megamanTexture , runFireTexture , jumpTexture , jumpFireTexture, wallSlideTexture;
 	Sprite megamanSpr;
     RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
     Texture healthbar_text;
     RectangleShape healthbar;
-    float Vx = 500.f;
+    float Vx = 300.f;
     float Vy = 0.0f;
     float inv_timer=3.0;
     Vector2f Pos_Tracker; 
-	float frameduration = 0.05f;
+	float frameduration = 0.1f;
+    float jumpFramrDuration = 0.12f;
 	float timer = 0.0f;
 	int sheet_width = 216; // sprite sheet height and width 
 	int sheet_height = 35;
 	int frame = 6;
 	int framewidth = sheet_width / frame; // each frame height and width don't ask how i calculated it 
-	int frameheight = sheet_height;
+	int frameheight = 35;
 	int i = 0; // our frame counter
+    int runW=35, runH=34, runFrames=11,runFireFrames=10;
+    int fireRunW=41, fireRunH=36, fireRunFrames=10;
+    int jumpW=30, jumpH=46, jumpFrames=7;
+    int fireJumpW=36, fireJumpH=45, fireJumpFrames=7;
+    int wallSlideW = 30, wallSlideH = 44, wallSlideFrames = 5;
+
   bool invincible=true;
   enum dir {NONE,LEFT,RIGHT};
   dir toucheswall = NONE; 
@@ -91,7 +100,7 @@ struct enemy {
     Sprite enemySpr;
 
     bool touchesground = true;
-    float detectionRange = 350.f;
+    float detectionRange = 500.f;
     bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
     bool alive = true;
     float timer= 0.0f;
@@ -101,27 +110,32 @@ struct enemy {
     int eIndex = 0;
     bool goingForward = true; // ping-pong direction flag
     bool hasFired    = false;
-} dEnemy; 
+} dEnemy[n_denenmy]; ; 
 struct bullet
 {
+    Texture bulletTexture;
+    Sprite bulletSpr;
     RectangleShape shape;
-    float speed =500.f ;
+    float speed =600.f ;
     Vector2f bullet2D;
     int direction = 1;  
     bool isthere = false;//this condition  helps us when we are using the struct array to know if the slot has a bullet in it or an empty bullet 
     //if there is a bullet in the slot the loop will skip it , if it found an empty slot and the player clicked on the fire button it will
     // make the slot has a bullet , to sum it up it create the bullet
+    int index =0;
 }prj;
+//bullet windowmag[nbullets];
 struct enemybullet
 {
 
-    RectangleShape shape;
+
     float speed =800.f ;
-    Vector2f bullet2D;
+
     int direction = 1;  
     bool isthere = false;
     
-
+    Texture bulletTexture;
+    Sprite bulletSpr;
 
 }dEnemyBullet;
 struct groundobj
@@ -131,7 +145,19 @@ struct groundobj
     int blockheight = 100.f;
 
 }ground[blocks];
+struct newenemy
+{
+    Sprite enemy2Spr;
+    Texture enemy2Texture;
+    bool alive = true;
+    float timer= 0.0f;
+    float frameduration = 0.09f;
+    int framewidth = 44.6; // each frame height and width don't ask how i calculated it 
+    int frameheight = 35;
+    int eIndex = 0;
+    float speed = -0.03f;
 
+} enemy2[nenemy];
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
 //1. Menu declaration functions (for main menu and options menu)
@@ -152,7 +178,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 //2. Game function declarations
 void playerstats(player& playerst);
 void bulletstates(bullet& prj);
-void enemystatus(enemy& dEnemy);
+void enemystatus(enemy& dEnemy,float denemypos);
 void enemybulletstatus(enemybullet& dEnemyBullet);
 void shooting(enemybullet& dEnemyBullet,player& playerst, float dt , enemy& dEenmy);
 void update(player& playerst ,enemybullet& dEnemyBullet , float dt );
@@ -160,8 +186,14 @@ void enemydetection(enemy& dEnemy , player& playerst);
 void health_blockout(player& playerst,RectangleShape& blackout);
 void inputhandler(player& playerst, float dt );
 void animationhandler(player& playerst, float dt);
+void runFireAnim(player& playerst , float dt );
+void jumpFireAnim(player& playerst, float dt);
+void jumpAnim(player& playerst, float dt);
+void standFireAnim(player& playerst, float dt);
 void enemyAnimation(enemy& dEnemy, float dt);
-
+void wallSlideAnim(player& playerst, float dt);
+bool pBulletupdate(bullet windowmag[] ,player& playerst ,float dt,RenderWindow& window);
+void enemy2status(newenemy& enemy2, float xpos);
 void Gravity(player& playerst, float &dt);
 void createBlock(int index, float x, float y, float width, float height);
 void playerhitbox_pos(player& playerst);
@@ -181,8 +213,8 @@ int main()
     blackout.setFillColor(Color::Black);
     blackout.setSize(Vector2f(15,1));
     blackout.setPosition(31.f,141.f);
-    
-    int i = 0;
+    bullet windowmag[nbullets];
+    int i = 0;//frame index
     int eindex = 0;
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
 
@@ -207,9 +239,9 @@ int main()
 	Clock clock;
 	// creating our megaman with the struct stats
 	playerstats(playerst);
-    enemystatus(dEnemy);
+    //enemystatus(dEnemy[n_denenmy]);
     enemybulletstatus(dEnemyBullet);
-    bullet windowmag[nbullets];
+    
     for(int i =0 ; i<nbullets ; i++)
     {
         bulletstates(windowmag[i]);//this set up all the empty bullets with all of the bulletstates intializations
@@ -217,7 +249,18 @@ int main()
     //this struct helps us in alot of functions , first it helps us in creating 10 bullets without writing 10 line of codes for each one
     // also this helps us to nulify the bullets that hit the boarder wihout needing to do this 10 times
     //just using this global array and editting it in any loop we want
+    for(int i = 0; i < n_denenmy; i++)
+    {
+        float denemypos = 1000.f + (i * 2000.f);
+        enemystatus(dEnemy[i], denemypos);
+    }
 
+
+
+    for (int i = 0; i < nenemy; i++) {
+        float xpos = 1500.f + (i * 4000.f);
+        enemy2status(enemy2[i], xpos);
+    }
     //LOADING THE MAP
 
     createBlock(0, 310, 380, 1490, 100);
@@ -284,7 +327,7 @@ int main()
                         // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
                         //from the postion of the character and in horizontal and vertical position , since our character can jump while jumping:D
                         windowmag[i].isthere = true;    // x positon                                    y position
-                        windowmag[i].shape.setPosition(playerst.megamanSpr.getPosition().x,playerst.megamanSpr.getPosition().y);//changed
+                        windowmag[i].bulletSpr.setPosition(playerst.megamanSpr.getPosition().x,playerst.megamanSpr.getPosition().y);//changed
                         //this because the y = 0 will always spawn the ballet in a different location if megaman y is different
                         if(playerst.megamanSpr.getScale().x > 0)//this check the character direction by the x scale we wrote above
                         {
@@ -294,6 +337,10 @@ int main()
                         {
                             windowmag[i].direction = -1;
                         }
+                        Transform megaTransform = playerst.megamanSpr.getTransform();
+                        Vector2f spawnPos = megaTransform.transformPoint(30.f, 15.f);
+                        windowmag[i].bulletSpr.setPosition(spawnPos);
+                        windowmag[i].bulletSpr.setScale(2.0f * windowmag[i].direction, 2.0f);
                         break;
                         // this is the most IMPORTANT line here i hope you know why:D
                         //look if this break wasn't here because this loop must on;y trigger once it found the 
@@ -327,7 +374,26 @@ int main()
             break;
 
         case GAME:
+        {
             window.setView(camera);
+            inputhandler(playerst, dt); 
+            handleIntersection(playerst, dt);
+            Gravity(playerst, dt);
+            //enemyAnimation(dEnemy[n_denenmy] , dt);
+            //shooting(dEnemyBullet, playerst, dt , dEnemy[n_denenmy]);
+            camBounds(70, 40, 40, 60);
+            carMovement(map1.car1Spr, -200.f, dt);
+            carMovement(map1.car2Spr, -200.f, dt);
+            playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
+            playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
+            //window.clear(); is this redundent?
+            window.draw(map1.backgroundSpr[0]);
+            window.draw(map1.mapSpr);
+            window.draw(map1.car1Spr);
+            window.draw(map1.car2Spr);
+            //window.draw(dEnemy[n_denenmy].enemySpr);
+            
+
             if (event.key.code == Keyboard::X) 
             {
                 mainMenu.curState = MAIN;
@@ -337,53 +403,65 @@ int main()
                 playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
                 playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
             } //debugging
-            inputhandler(playerst, dt); 
-            handleIntersection(playerst, dt);
-            animationhandler(playerst, dt);
-            Gravity(playerst, dt);
-            enemyAnimation(dEnemy , dt);
-            shooting(dEnemyBullet, playerst, dt , dEnemy);
-            camBounds(70, 40, 40, 60);
-            carMovement(map1.car1Spr, -200.f, dt);
-            carMovement(map1.car2Spr, -200.f, dt);
-
-          
-            //window.clear(); is this redundent?
-            window.draw(map1.backgroundSpr[0]);
-            window.draw(map1.mapSpr);
-            window.draw(dEnemy.enemySpr);
-            window.draw(dEnemyBullet.shape);
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet movement update
-            for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
-            //this loop reads the array and locate the slot we want to fire , then it fire it and reset this bullet condition or bool
+            for(int i = 0; i < n_denenmy; i++)
             {
-                if(windowmag[i].isthere)
-                {
-                    windowmag[i].shape.move(windowmag[i].speed* windowmag[i].direction * dt, 0);// here is the FIRING 
-                    //this function does fire the bullet in the direction that we condifiermed in the directionfunction inside the inputhandler  
-                    
-                    //so that the bullet fire in the direction the character is  facing 
+            enemyAnimation(dEnemy[i] , dt);
+            shooting(dEnemyBullet, playerst, dt , dEnemy[i]);
+            window.draw(dEnemy[i].enemySpr);
 
-                    //the code below make each bullet when it hit the boundary it will reset so that it won't continue to move in the background //~~~~~~~~~~~~~~~~~
-                    //and consume alot more resources each bullet
-                    if (windowmag[i].shape.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth  || windowmag[i].shape.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth) {
-                
-                        windowmag[i].isthere = false;
+            }
+            if(dEnemyBullet.isthere)
+                window.draw(dEnemyBullet.bulletSpr);
+            
+            for (int i = 0; i < nenemy; i++) 
+            { 
+                    if(enemy2[i].enemy2Spr.getPosition().x < playerst.megamanSpr.getPosition().x -windowWidth+240.f )
+                    {
+                    enemy2[i].alive = false;
                     }
-                    
-                    window.draw(windowmag[i].shape);
-                    window.setKeyRepeatEnabled(false);// this built-in event works when the player hold the button 
-                    //and don't release it but we want the action to happen only once in this for loop
-                    
+                
+                if (enemy2[i].alive) 
+                {
+                    enemy2[i].timer += dt;
+                    if (enemy2[i].timer >= enemy2[i].frameduration)
+                    {
+                    enemy2[i].timer = 0.0f;
+                    enemy2[i].eIndex = (enemy2[i].eIndex + 1) % 3;
+                    enemy2[i].enemy2Spr.setTextureRect(IntRect(enemy2[i].eIndex * enemy2[i].framewidth, 0, enemy2[i].framewidth, enemy2[i].frameheight) );
+                    }
+                        enemy2[i].enemy2Spr.move(enemy2[i].speed, 0);
+                        window.draw(enemy2[i].enemy2Spr);
                 }
             }
-            playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
-            playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
+
+            
+            bool IsFiring = pBulletupdate(windowmag, playerst, dt, window);
+            if(playerst.issliding)
+            {
+                wallSlideAnim(playerst, dt);
+            }
+            else if(!playerst.touchesground && IsFiring )
+            {
+                jumpFireAnim(playerst, dt);
+            }
+            else if(!playerst.touchesground)
+            {
+                jumpAnim(playerst, dt);
+            }
+            else if(playerst.moving &&IsFiring)
+            {
+                runFireAnim(playerst ,dt);
+            }
+            else if(!playerst.moving && IsFiring) // ← add this
+            {
+                standFireAnim(playerst, dt);
+            }
+            else
+            {
+                animationhandler(playerst, dt);
+            }
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
-            window.draw(map1.car1Spr);
-            window.draw(map1.car2Spr);
             //constants on the screen (aka just health), dont do .draw under it or else it wont function the same as you want
             // if you wanna do .draw   make sure to reuse window.setView(camera); and then use window.draw under it
             window.setView(healthUI);
@@ -394,7 +472,8 @@ int main()
 
             //events of game go here
             break;
-            
+
+        }
 
         default:
             mainMenu.curState = MAIN;
@@ -596,8 +675,12 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 //~~~~~~~~~~~~~~intialize !!megaman texture and sprite function~~~~~~~~~~~~~~~~~~~~~~
 void playerstats(player& playerst) // p for better writing :D
 {
-	playerst.megamanTexture.loadFromFile("textures/shit.jpeg");
-	playerst.megamanSpr.setTexture(playerst.megamanTexture); //assigning the texture to the sprite so that we can use it in the game loop
+	playerst.megamanTexture.loadFromFile("textures/running35-34.png");
+	playerst.runFireTexture.loadFromFile("textures/firing-moving(41-36).png");
+    playerst.jumpTexture.loadFromFile("textures/jump(30-46).png");
+    playerst.jumpFireTexture.loadFromFile("textures/firing-jumping(36-45)1.png");
+    playerst.wallSlideTexture.loadFromFile("textures/wallSlideAnimation (30x44).png");
+
 	playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
 	playerst.megamanSpr.setScale(2.0f, 2.0f);  
 	playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));//start with the first frame of the sprite sheet
@@ -633,24 +716,23 @@ void inputhandler(player& playerst, float dt )
     playerst.megamanSpr.setScale(-2.0f, 2.0f); // negative to make the sprite face the other direction
     playerst.moving = true; 
   }
-  else { 
-    playerst.i = 0;
-    playerst.timer = 0.0f;
-    playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));
-  }
+
 }
 //~~~~~~~~~~~~~~~~megaman frames and deltatime handler~~~~~~~~~~~~~~~~~~~~~~
 void animationhandler(player& playerst, float dt)
 {
-	if (playerst.moving)//this if condition is wrote so that when the player click any movement botton the code reads it so that the 
-		// frames update
-	{
-	    playerst.timer += dt; // this line add the  fraction of time we pressed on the button to our timer so
-		//that each frame update is presicely know or determined according to our frame duration constant
-		// btw we assinged the timer to be each 0.0f this means it will act as a real timer and reads every 0.1 s the player
-		// click on the button
 
-
+	if(playerst.moving)  
+    {
+        if(playerst.megamanSpr.getTexture() != &playerst.megamanTexture )
+        {
+            playerst.megamanSpr.setTexture(playerst.megamanTexture);
+            playerst.megamanSpr.setOrigin(playerst.runW/2.f,playerst.runH/2);
+            playerst.timer = 0.0f;
+            playerst.i = 0;
+        }
+        
+        playerst.timer += dt; 
 		if (playerst.timer >= playerst.frameduration)// this condition is only made for the time being because since we only now have 6 frmaes 
 			// and each frame frameduartion of 0.1 , this means that each time the timer goes up by 0.1 the the frame is updated 
 			// and the game loop after 0.1 s will display the new frame and in out case since we only have 6 frames then after
@@ -658,21 +740,33 @@ void animationhandler(player& playerst, float dt)
 		{
 			playerst.timer = 0;
 			playerst.i++;
-            if (playerst.i >= 6)
+            if (playerst.i >= playerst.runFrames)
 				playerst.i = 0;
-			playerst.megamanSpr.setTextureRect(IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight));
+			
 
 		}
-	}
-	
+        playerst.megamanSpr.setTextureRect(IntRect(playerst.i * playerst.runW, 0,playerst.runW,playerst.runH));
+
+    }
+    else
+    {   
+        playerst.megamanSpr.setTexture(playerst.megamanTexture);
+        playerst.megamanSpr.setOrigin(playerst.runW / 2.f, playerst.runH / 2.f);
+        playerst.i     = 0;
+        playerst.timer = 0.f;
+        playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.runW, playerst.runH));
+    
+    }
 }
 void bulletstates(bullet& prj)
 {
+    prj.bulletTexture.loadFromFile("textures/mmx1-buster.png");
+    prj.bulletSpr.setTexture(prj.bulletTexture);
     prj.bullet2D.x = 20;
     prj.bullet2D.y = 20;
-    prj.shape.setOrigin(prj.shape.getGlobalBounds().width/2 , prj.shape.getGlobalBounds().height/2);
-    prj.shape.setSize(prj.bullet2D);
-    prj.shape.setFillColor(Color::Red);
+    prj.bulletSpr.setOrigin(prj.bulletSpr.getGlobalBounds().width/2 , prj.bulletSpr.getGlobalBounds().height/2);
+    prj.bulletSpr.setScale(2.0f,2.0f);
+    
     //prj.isthere =false; // leave if for future bec. this will help us if we add a button to rest the level
     // due to this button resets the condition after every loob not the struct
 
@@ -752,7 +846,7 @@ void handleIntersection(player& playerst , float &dt) {
   
   // Sliding
   if (playerst.touchesground == false && playerst.toucheswall != player::NONE) playerst.issliding = true;
-
+  
   // Enemy-player : Make the player get hit
 
   // Enemy-Platform
@@ -760,14 +854,14 @@ void handleIntersection(player& playerst , float &dt) {
   // Enemy-Wall
 
 }
-void enemystatus(enemy& denemy)
+void enemystatus(enemy& denemy ,float denemypos)
 {
- denemy.enemySpr.setPosition( 1053.89f , 220.f );
+ denemy.enemySpr.setPosition(denemypos, 220.f);
  denemy.enemyTexture.loadFromFile("textures/enemies_full2.png");
  denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
  denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
  denemy.enemySpr.setScale(4.0f, 4.0f);  
-denemy.enemySpr.setTextureRect(IntRect(0, 0, denemy.framewidth, denemy.frameheight));
+denemy.enemySpr.setTextureRect(IntRect({0, 0, denemy.framewidth, denemy.frameheight}));
 
 }
 void enemydetection(enemy& dEnemy , player& playerst)
@@ -793,23 +887,27 @@ void enemydetection(enemy& dEnemy , player& playerst)
 }   
 void enemybulletstatus(enemybullet& dEnemyBullet)
 {
-    dEnemyBullet.bullet2D.x = 20;
-    dEnemyBullet.bullet2D.y = 20;
-    dEnemyBullet.shape.setOrigin(dEnemyBullet.shape.getGlobalBounds().width/2 , dEnemyBullet.shape.getGlobalBounds().height/2);
-    dEnemyBullet.shape.setSize(dEnemyBullet.bullet2D);
-    dEnemyBullet.shape.setFillColor(Color::Blue);
-    
+    dEnemyBullet.bulletTexture.loadFromFile("textures/enemybullet.png");
+    dEnemyBullet.bulletSpr.setTexture(dEnemyBullet.bulletTexture);
+    dEnemyBullet.bulletSpr.setOrigin(
+        dEnemyBullet.bulletTexture.getSize().x / 2.f,
+        dEnemyBullet.bulletTexture.getSize().y / 2.f
+    );
+    dEnemyBullet.bulletSpr.setScale(2.0f, 2.0f); // 
 }
 void update(player& playerst ,enemybullet& dEnemyBullet , float dt )
 {
         if(dEnemyBullet.isthere)
         {
-            dEnemyBullet.shape.move(dEnemyBullet.speed * dEnemyBullet.direction* dt , 0);
-        }
-        if (dEnemyBullet.shape.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth  || dEnemyBullet.shape.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth) {
+            dEnemyBullet.bulletSpr.move(dEnemyBullet.speed * dEnemyBullet.direction* dt , 0);
+            if (dEnemyBullet.bulletSpr.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth  || dEnemyBullet.bulletSpr.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth) 
+            {
     
-            dEnemyBullet.isthere = false;
+                dEnemyBullet.isthere = false;
+                dEnemyBullet.bulletSpr.setPosition(20000,20000);
+            }
         }
+
 
 
 }
@@ -827,7 +925,7 @@ void shooting(enemybullet& dEnemyBullet,player& playerst,float dt , enemy& dEnem
             dEnemyBullet.isthere = true;
             dEnemy.hasFired = true; 
             
-            dEnemyBullet.shape.setPosition(dEnemy.enemySpr.getPosition().x,dEnemy.enemySpr.getPosition().y);
+            dEnemyBullet.bulletSpr.setPosition(dEnemy.enemySpr.getPosition().x,dEnemy.enemySpr.getPosition().y);
                 
                 
             
@@ -871,7 +969,7 @@ void enemyAnimation(enemy& dEnemy, float dt)
                 if (dEnemy.eIndex >= 12)          // hit the last frame → reverse
                 {
                     dEnemy.goingForward = false;
-                    dEnemy.eIndex = 10;  
+                    dEnemy.eIndex = 11;  
                 }
             }
             else
@@ -904,6 +1002,150 @@ void enemyAnimation(enemy& dEnemy, float dt)
         
         
     }
+}
+void runFireAnim(player& playerst , float dt)  
+{
+    if(playerst.megamanSpr.getTexture() != &playerst.runFireTexture )
+    {
+        playerst.megamanSpr.setTexture(playerst.runFireTexture);
+        playerst.megamanSpr.setOrigin(playerst.fireRunW/2.f , playerst.fireRunH/2.f);
+        playerst.i = 0;
+        playerst.timer = 0.0f;
+    }
+    playerst.timer += dt;
+    if (playerst.timer >= playerst.frameduration) 
+    {
+        playerst.timer = 0.0f;
+        playerst.i++;
+        if (playerst.i >= playerst.fireRunFrames)
+        {
+            playerst.i =0;
+        }
+    }
+    playerst.megamanSpr.setTextureRect(IntRect(playerst.i*playerst.fireRunW,0,playerst.fireRunW,playerst.fireRunH  ));
+}
+void enemy2status(newenemy& enemy2, float xpos)
+{
+    enemy2.enemy2Spr.setPosition( xpos , 247.f );
+    enemy2.enemy2Texture.loadFromFile("textures/enemyrolling2.png");
+    enemy2.enemy2Spr.setTexture(enemy2.enemy2Texture); //assigning the texture to the sprite so that we can use it in the game loop
+    enemy2.enemy2Spr.setOrigin(enemy2.framewidth/ 2.0f, enemy2.frameheight / 2.0f);	
+    enemy2.enemy2Spr.setScale(4.0f, 4.0f);  
+  
+
+}
+
+void jumpAnim(player& playerst, float dt) {
+    if(playerst.megamanSpr.getTexture() != &playerst.jumpTexture) {
+        playerst.megamanSpr.setTexture(playerst.jumpTexture);
+        playerst.megamanSpr.setOrigin(playerst.jumpW / 2.f, playerst.jumpH / 2.f);
+        playerst.i = 0;
+        playerst.timer = 0.f;
+    }
+
+    playerst.timer += dt;
+    if(playerst.timer >= playerst.jumpFramrDuration) {
+        playerst.timer = 0.f;
+        // clamp at last frame — don't loop jump animation
+        if(playerst.i < playerst.frame - 1)
+            playerst.i++;
+    }
+    playerst.megamanSpr.setTextureRect(
+        IntRect(playerst.i * playerst.jumpW, 0,playerst.jumpW, playerst.jumpH)
+    );
+}
+
+
+
+void jumpFireAnim(player& playerst, float dt) {
+    if(playerst.megamanSpr.getTexture() != &playerst.jumpFireTexture) {
+        playerst.megamanSpr.setTexture(playerst.jumpFireTexture);
+        playerst.megamanSpr.setOrigin(playerst.framewidth / 2.f, playerst.frameheight / 2.f);
+        playerst.i = 0;
+        playerst.timer = 0.f;
+    }
+
+    playerst.timer += dt;
+    if(playerst.timer >= playerst.frameduration) {
+        playerst.timer = 0.f;
+        if(playerst.i < playerst.frame - 1)
+            playerst.i++; // clamp, don't loop
+    }
+    playerst.megamanSpr.setTextureRect(
+        IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight)
+    );
+}
+
+void standFireAnim(player& playerst, float dt)
+{
+    playerst.megamanSpr.setTexture(playerst.runFireTexture);
+    playerst.megamanSpr.setOrigin(playerst.fireRunW / 2.f, playerst.fireRunH / 2.f);
+
+    // just hold frame 0 — standing fire pose, no leg movement
+    playerst.megamanSpr.setTextureRect(
+        IntRect(0, 0, playerst.fireRunW, playerst.fireRunH));
+}
+
+
+void wallSlideAnim(player& playerst, float dt)
+{
+    if(playerst.megamanSpr.getTexture() != &playerst.wallSlideTexture)
+    {
+        playerst.megamanSpr.setTexture(playerst.wallSlideTexture);
+        playerst.megamanSpr.setOrigin(playerst.wallSlideW / 2.f, playerst.wallSlideH / 2.f);
+        playerst.i = 0;
+        playerst.timer = 0.f;
+    }
+
+    playerst.timer += dt;
+    if(playerst.timer >= playerst.frameduration)
+    {
+        playerst.timer = 0.f;
+        if(playerst.i < playerst.wallSlideFrames - 1)
+            playerst.i++; // clamp at last frame, don't loop
+    }
+
+    // flip sprite based on which wall player is touching
+    if(playerst.toucheswall == playerst.LEFT)
+        playerst.megamanSpr.setScale(-2.f, 2.f);
+    else
+        playerst.megamanSpr.setScale(2.f, 2.f);
+
+    playerst.megamanSpr.setTextureRect(
+        IntRect(playerst.i * playerst.wallSlideW, 0, playerst.wallSlideW, playerst.wallSlideH)
+    );
+}
+
+
+bool pBulletupdate(bullet windowmag[] ,player& playerst ,float dt,RenderWindow& window)
+{
+    bool IsFiring = false;
+    for(int i = 0 ; i < nbullets ; i++)// this loop after the game loop above so that after we determined the bullet and said to shoot
+    //this loop reads the array and locate the slot we want to fire , then it fire it and reset this bullet condition or bool
+    {   
+        
+        if(windowmag[i].isthere)
+        {   
+            IsFiring = true;
+            windowmag[i].bulletSpr.move(  windowmag[i].speed * windowmag[i].direction * dt, 0);
+              
+            
+            windowmag[i].bulletSpr.setScale( windowmag[i].direction * 2.0f, 2.0f);
+               
+            
+            if(windowmag[i].bulletSpr.getPosition().x > playerst.megamanSpr.getPosition().x + windowWidth ||windowmag[i].bulletSpr.getPosition().x < playerst.megamanSpr.getPosition().x - windowWidth)
+
+            {
+                windowmag[i].isthere = false;
+                windowmag[i].bulletSpr.setPosition(20000.f, 20000.f);
+            }
+            window.draw(windowmag[i].bulletSpr);
+            window.setKeyRepeatEnabled(false);// this built-in event works when the player hold the button 
+            //and don't release it but we want the action to happen only once in this for loop
+            
+        }
+    }
+    return IsFiring;
 }
 //CAMERA BOUNDS FUNCTION
 void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset){

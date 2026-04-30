@@ -46,7 +46,7 @@ View camera(FloatRect(0, 0, windowWidth, windowHeight));
 
 struct player
 {
-	Texture megamanTexture;
+	Texture megamanTexture, runFireTexture , jumpTexture, jumpFireTexture;
 	Sprite megamanSpr;
     RectangleShape hitbox; //for every interaction EXCEPT ground and wall jump
 
@@ -56,6 +56,7 @@ struct player
     Vector2f Pos_Tracker; 
 	float frameduration = 0.05f;
 	float timer = 0.0f;
+    float fireTimer = 0.f; // for the firing animation
 	int sheet_width = 216; // sprite sheet height and width 
 	int sheet_height = 35;
 	int frame = 6;
@@ -65,6 +66,8 @@ struct player
     bool invincible=true;
 	bool moving=false;
     bool isground = false;
+    bool firing = false; // for the firing animation
+    bool touchesground =true;
     float jumpstrength = -300.f;
 		
 } playerst;
@@ -140,6 +143,10 @@ void playerstats(player& playerst);
 void enemystatus(enemy& dEnemy);
 void inputhandler(player& playerst, float dt );
 void animationhandler(player& playerst, float dt);
+void animation_JumpFire(player& playerst,float dt);
+void animation_Jump(player& playerst,float dt);
+void animation_RunFire(player& playerst,float dt);
+void animation_Run (player& playerst,float dt);
 void bulletstates(bullet& prj);
 void Gravity(player& playerst, float &dt);
 void createBlock(int index, float x, float y, float width, float height);
@@ -273,6 +280,8 @@ int main()
                         // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
                         //from the postion of the character and in horizontal and vertical position , since our character can jump while jumping:D
                         windowmag[i].isthere = true;    // x positon                                    y position
+                        playerst.firing = true;
+                        playerst.fireTimer = 0.2f; // show firing animation for 0.2 seconds
                         windowmag[i].shape.setPosition(playerst.megamanSpr.getPosition().x,playerst.megamanSpr.getPosition().y);//changed
                         //this because the y = 0 will always spawn the ballet in a different location if megaman y is different
                         if(playerst.megamanSpr.getScale().x > 0)//this check the character direction by the x scale we wrote above
@@ -328,7 +337,35 @@ int main()
                 playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
             } //debugging
             inputhandler(playerst, dt); 
-            animationhandler(playerst, dt);
+            // count down firing timer
+if(playerst.firing) {
+    playerst.fireTimer -= dt;
+    if(playerst.fireTimer <= 0.f) {
+        playerst.firing = false;
+    }
+}
+
+// determine state and call correct animation function
+if(!playerst.touchesground) {
+    // player is in the air
+    if(playerst.firing) {
+        animation_JumpFire(playerst, dt); // jumping + firing
+    } else {
+        animation_Jump(playerst, dt);     // just jumping
+    }
+} else {
+    // player is on the ground
+    if(playerst.firing && playerst.moving) {
+        animation_RunFire(playerst, dt);  // running + firing
+    } else if(playerst.firing && !playerst.moving) {
+        animation_RunFire(playerst, dt);  // standing + firing (use same for now)
+    } else if(playerst.moving) {
+        animation_Run(playerst, dt);      // just running
+    } else {
+        // idle — show frame 0 of run texture, no animation needed
+        playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));
+    }
+}
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
             for(int i = 0 ; i < blocks ; i++)
@@ -560,6 +597,9 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 void playerstats(player& playerst) // p for better writing :D
 {
 	playerst.megamanTexture.loadFromFile("textures/shit.jpeg");
+    // playerst.runFireTexture.loadFromFile();
+    playerst.jumpTexture.loadFromFile("D:/SP project 2/MegaManX-proj/textures/jump-animation-edited 30x46.png");
+    playerst.jumpFireTexture.loadFromFile("D:/SP project 2/MegaManX-proj/textures/firing-jumping-edited 36x45.png");
 	playerst.megamanSpr.setTexture(playerst.megamanTexture); //assigning the texture to the sprite so that we can use it in the game loop
 	playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
 	playerst.megamanSpr.setScale(2.0f, 2.0f);  
@@ -833,3 +873,83 @@ void enemyAnimation(enemy& dEnemy, float dt)
         
     }
 }
+
+/*void animation_Run(player& playerst, float dt) {
+    // swap to run texture if not already using it
+    if(playerst.megamanSpr.getTexture() != &playerst.megamanTexture) {
+        playerst.megamanSpr.setTexture(playerst.megamanTexture);
+        playerst.megamanSpr.setOrigin(playerst.framewidth / 2.f, playerst.frameheight / 2.f);
+        playerst.i = 0;
+        playerst.timer = 0.f;
+    }
+
+    playerst.timer += dt;
+    if(playerst.timer >= playerst.frameduration) {
+        playerst.timer = 0.f;
+        playerst.i++;
+        if(playerst.i >= playerst.frame)
+            playerst.i = 0; // loop
+    }
+    playerst.megamanSpr.setTextureRect(
+        IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight)
+    );
+}*/
+
+void animation_Jump(player& playerst, float dt) {
+    if(playerst.megamanSpr.getTexture() != &playerst.jumpTexture) {
+        playerst.megamanSpr.setTexture(playerst.jumpTexture);
+        playerst.megamanSpr.setOrigin(playerst.framewidth / 2.f, playerst.frameheight / 2.f);
+        playerst.i = 0;
+        playerst.timer = 0.f;
+    }
+
+    playerst.timer += dt;
+    if(playerst.timer >= playerst.frameduration) {
+        playerst.timer = 0.f;
+        // clamp at last frame — don't loop jump animation
+        if(playerst.i < playerst.frame - 1)
+            playerst.i++;
+    }
+    playerst.megamanSpr.setTextureRect(
+        IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight)
+    );
+}
+
+void animation_JumpFire(player& playerst, float dt) {
+    if(playerst.megamanSpr.getTexture() != &playerst.jumpFireTexture) {
+        playerst.megamanSpr.setTexture(playerst.jumpFireTexture);
+        playerst.megamanSpr.setOrigin(playerst.framewidth / 2.f, playerst.frameheight / 2.f);
+        playerst.i = 0;
+        playerst.timer = 0.f;
+    }
+
+    playerst.timer += dt;
+    if(playerst.timer >= playerst.frameduration) {
+        playerst.timer = 0.f;
+        if(playerst.i < playerst.frame - 1)
+            playerst.i++; // clamp, don't loop
+    }
+    playerst.megamanSpr.setTextureRect(
+        IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight)
+    );
+}
+
+/*void animation_RunFire(player& playerst, float dt) {
+    if(playerst.megamanSpr.getTexture() != &playerst.runFireTexture) {
+        playerst.megamanSpr.setTexture(playerst.runFireTexture);
+        playerst.megamanSpr.setOrigin(playerst.framewidth / 2.f, playerst.frameheight / 2.f);
+        playerst.i = 0;
+        playerst.timer = 0.f;
+    }
+
+    playerst.timer += dt;
+    if(playerst.timer >= playerst.frameduration) {
+        playerst.timer = 0.f;
+        playerst.i++;
+        if(playerst.i >= playerst.frame)
+            playerst.i = 0; // loop like run
+    }
+    playerst.megamanSpr.setTextureRect(
+        IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight)
+    );
+}*/

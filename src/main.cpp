@@ -14,6 +14,8 @@ using namespace sf;
 const float gravity = 1000.f;
 const int blocks = 100;
 const float ratio_health=3.84;
+const float MegaSpawnX = 500.f;
+const float MegaSpawnY = 100.f;
 
 enum GameState { MAIN, OPTIONS, GAME };
 
@@ -224,11 +226,12 @@ void damage (player& playerst);
 void heal (player& playerst);
 
 int main()
-{   //blackout that blocks healthbar to make it seem gone
+{
     RectangleShape blackout;
     blackout.setFillColor(Color::Black);
-    blackout.setSize(Vector2f(15,1));
-    blackout.setPosition(31.f,141.f);
+    blackout.setSize(Vector2f(15, 1));
+    blackout.setPosition(31.f, 141.f);
+    
     bullet windowmag[nbullets];
     int i = 0;//frame index
     int eindex = 0;
@@ -237,47 +240,34 @@ int main()
     MenuData mainMenu;
     MenuData optionsMenu;
 
-    // Load resources for both menus
     if (!resourcesCheck(mainMenu) || !resourcesCheck(optionsMenu)) {
         return 0;
         //crashes program to stop messages (in resourcesCheck) from looping if logo is not found
     };
 
-    //Menu stuff (will add sub-menus like options and PASS WORRD stuff later)
     initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu in 1st argument, 2nd and 3rd arguments are used for calculations regarding positions of menu items.
-
-    //Options
     initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //same as initMenu but for options menu.
 
-    //~~~~~~~~~~~~Game~~~~~~~~~~~~~~~
-    //assigning the texture and sprites to megaman
-	float dt; // delta time and clock for the whole game loop
-	Clock clock;
-	// creating our megaman with the struct stats
-	playerstats(playerst);
-    //enemystatus(dEnemy[n_denenmy]);
+    float dt; // delta time and clock for the whole game loop
+    Clock clock;
+    bool isPaused = false; 
+
+    playerstats(playerst);
     enemybulletstatus(dEnemyBullet);
-    
-    for(int i =0 ; i<nbullets ; i++)
-    {
+
+    for (int i = 0; i < nbullets; i++) {
         bulletstates(windowmag[i]);//this set up all the empty bullets with all of the bulletstates intializations
-    }//creating the array of struct 
-    //this struct helps us in alot of functions , first it helps us in creating 10 bullets without writing 10 line of codes for each one
-    // also this helps us to nulify the bullets that hit the boarder wihout needing to do this 10 times
-    //just using this global array and editting it in any loop we want
-    for(int i = 0; i < n_denenmy; i++)
-    {
+    }
+
+    for (int i = 0; i < n_denenmy; i++) {
         float denemypos = 1000.f + (i * 2000.f);
         enemystatus(dEnemy[i], denemypos);
     }
-
-
 
     for (int i = 0; i < nenemy; i++) {
         float xpos = 1500.f + (i * 4000.f);
         enemy2status(enemy2[i], xpos);
     }
-    //LOADING THE MAP
 
     createBlock(0, 310, 380, 1490, 100);
     createBlock(1, 1890, 320, 930, 100);
@@ -297,92 +287,91 @@ int main()
     createBlock(15, 12687, 520, 2883, 100);
     createBlock(16, 15555, 520, 100, 700);
     createBlock(17, 210, 370, 100, 700);
-    
 
-
-    //Password
-    // (TBD)
-
-    //Controls
     Keyboard::Key interractionButton = Keyboard::Z;
     Event event;
+
     while (window.isOpen())
     {
-
         dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
         if (dt > 0.05f) {
-        dt = 0.05f; 
-        
+            dt = 0.05f; 
         } // dt limiter to prevent lagspikes from breaking some game stuff
+
         while (window.pollEvent(event))
-        //aspect ratio logic
         {
+            if (event.type == Event::Closed) 
+            {
+                window.close();
+            }
+
             if (event.type == Event::Resized) 
             {
                 camera = aspectRatio(camera, event.size.width, event.size.height);
                 menuCamera = aspectRatio(menuCamera, event.size.width, event.size.height);
                 healthUI = aspectRatio(healthUI, event.size.width, event.size.height); 
             }
-            if (event.type == Event::Closed) 
-            {
-                window.close();
-            }
-            //jump  
-            if(event.type == Event::KeyPressed && event.key.code == Keyboard::Space && (playerst.touchesground || playerst.issliding)) 
-            {
-                playerst.Vy = playerst.jumpstrength;
-                playerst.touchesground = false;
-            }
-            //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
-            if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
-            {
-            
-                
-                for(int i = 0 ; i < nbullets ; i++)
-                {
-                   
-                    if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
-                    {
-                        // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
-                        //from the postion of the character and in horizontal and vertical position , since our character can jump while jumping:D
-                        windowmag[i].isthere = true;    // x positon                                    y position
-                        windowmag[i].bulletSpr.setPosition(playerst.megamanSpr.getPosition().x,playerst.megamanSpr.getPosition().y);//changed
-                        //this because the y = 0 will always spawn the ballet in a different location if megaman y is different
-                        if(playerst.megamanSpr.getScale().x > 0)//this check the character direction by the x scale we wrote above
-                        {
-                            windowmag[i].direction = 1;
-                        }
-                        else
-                        {
-                            windowmag[i].direction = -1;
-                        }
-                        //  shoot.setBuffer(buffer);            
-                        //  shoot.play();
- 
-                        Transform megaTransform = playerst.megamanSpr.getTransform();
-                        Vector2f spawnPos ;
-                        if(!playerst.touchesground) 
-                        {
-                            spawnPos = megaTransform.transformPoint(34.f, 22.f);
-                           
-                        }
-                        else
-                        {
-                            spawnPos = megaTransform.transformPoint(34.f, 15.f);
-                        }
-                        
-                        windowmag[i].bulletSpr.setPosition(spawnPos);
-                        windowmag[i].bulletSpr.setScale(2.0f * windowmag[i].direction, 2.0f);
-                        break;
-                        // this is the most IMPORTANT line here i hope you know why:D
-                        //look if this break wasn't here because this loop must on;y trigger once it found the 
-                        //the first empty slot and then it will be fired in the switch case above ,
-                        //the main problem here if the loop continues it will fill all of the empty slots with bullets 
-                        // then we the the character fire it will fire >> 10 bullets but in the same pixel moving with same direction
-                        // we won't see it but it will make the collusion with the enemy a hell:DDDD
 
-                    }   
-                    
+            if (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape)
+            {
+                isPaused = !isPaused;
+                if (!isPaused) {
+                    clock.restart();
+                }
+            }
+
+            if (!isPaused && mainMenu.curState == GAME)
+            {
+                //jump  
+                if(event.type == Event::KeyPressed && event.key.code == Keyboard::Space && (playerst.touchesground || playerst.issliding)) 
+                {
+                    playerst.Vy = playerst.jumpstrength;
+                    playerst.touchesground = false;
+                }
+
+                //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
+                if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
+                {
+                    for(int i = 0 ; i < nbullets ; i++)
+                    {
+                        if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
+                        {
+                            // of the slot is empty and the player pressed 'z' then these next line of codes relode this bullet and fire it 
+                            //from the postion of the character and in horizontal and vertical position , since our character can jump while jumping:D
+                            windowmag[i].isthere = true;    // x positon                                    y position
+                            windowmag[i].bulletSpr.setPosition(playerst.megamanSpr.getPosition().x,playerst.megamanSpr.getPosition().y);//changed
+                            //this because the y = 0 will always spawn the ballet in a different location if megaman y is different
+                            if(playerst.megamanSpr.getScale().x > 0)//this check the character direction by the x scale we wrote above
+                            {
+                                windowmag[i].direction = 1;
+                            }
+                            else
+                            {
+                                windowmag[i].direction = -1;
+                            }
+
+                            Transform megaTransform = playerst.megamanSpr.getTransform();
+                            Vector2f spawnPos;
+                            if(!playerst.touchesground) 
+                            {
+                                spawnPos = megaTransform.transformPoint(34.f, 22.f);
+                            }
+                            else
+                            {
+                                spawnPos = megaTransform.transformPoint(34.f, 15.f);
+                            }
+                            
+                            windowmag[i].bulletSpr.setPosition(spawnPos);
+                            windowmag[i].bulletSpr.setScale(2.0f * windowmag[i].direction, 2.0f);
+                            break;
+                            // this is the most IMPORTANT line here i hope you know why:D
+                            //look if this break wasn't here because this loop must on;y trigger once it found the 
+                            //the first empty slot and then it will be fired in the switch case above ,
+                            //the main problem here if the loop continues it will fill all of the empty slots with bullets 
+                            // then we the the character fire it will fire >> 10 bullets but in the same pixel moving with same direction
+                            // we won't see it but it will make the collusion with the enemy a hell:DDDD
+                        }   
+                    }
                 }
             }
             menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
@@ -390,12 +379,11 @@ int main()
 
         window.clear();
 
-        // Use mainMenu.curState to determine which menu to draw
         switch (mainMenu.curState)
         {
         case MAIN:
-        aspectRatio(menuCamera, window.getSize().x, window.getSize().y);
-        window.setView(menuCamera);
+            aspectRatio(menuCamera, window.getSize().x, window.getSize().y);
+            window.setView(menuCamera);
             window.draw(mainMenu.XLogoSprite);
             window.draw(mainMenu.logoSprite); //draws logo
             drawMenuSelection(mainMenu, window);
@@ -407,102 +395,117 @@ int main()
 
         case GAME:
         {
+
+            //Game logic stuff section
+            if (!isPaused)
+            {
+                inputhandler(playerst, dt); 
+                deathHandler(playerst, dt);
+                handleIntersection(playerst, dt);
+                Gravity(playerst, dt);
+                camBounds(70, 40, 40, 60);
+                carMovement(map1.car1Spr, -200.f, dt);
+                carMovement(map1.car2Spr, -200.f, dt);
+                playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
+                playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
+
+                for(int i = 0; i < n_denenmy; i++)
+                {
+                    dEnemy[i].hitbox.setPosition(dEnemy[i].enemySpr.getPosition());
+                    enemyAnimation(dEnemy[i] , dt);
+                    shooting(dEnemyBullet, playerst, dt , dEnemy[i]);
+                }
+
+                for (int i = 0; i < nenemy; i++) 
+                { 
+                    if(enemy2[i].enemy2Spr.getPosition().x < playerst.megamanSpr.getPosition().x -windowWidth+240.f )
+                    {
+                        enemy2[i].alive = false;
+                    }
+                    
+                    if (enemy2[i].alive) 
+                    {
+                        enemy2[i].timer += dt;
+                        if (enemy2[i].timer >= enemy2[i].frameduration)
+                        {
+                            enemy2[i].timer = 0.0f;
+                            enemy2[i].eIndex = (enemy2[i].eIndex + 1) % 3;
+                            enemy2[i].enemy2Spr.setTextureRect(IntRect(enemy2[i].eIndex * enemy2[i].framewidth, 0, enemy2[i].framewidth, enemy2[i].frameheight) );
+                        }
+                        enemy2[i].enemy2Spr.move(enemy2[i].speed*dt, 0);
+                        enemy2[i].hitbox.setPosition(enemy2[i].enemy2Spr.getPosition());
+                    }
+                }
+
+                bool IsFiring = pBulletupdate(windowmag, playerst, dt, window);
+
+                if(!playerst.moving && !IsFiring && playerst.touchesground){
+                    idleAnim(playerst, dt);
+                }
+                else if(playerst.issliding)
+                {
+                    wallSlideAnim(playerst, dt);
+                }
+                else if(!playerst.touchesground && IsFiring )
+                {
+                    jumpFireAnim(playerst, dt);
+                }
+                else if(!playerst.touchesground)
+                {
+                    jumpAnim(playerst, dt);
+                }
+                else if(playerst.moving && IsFiring)
+                {
+                    runFireAnim(playerst ,dt);
+                }
+                else if(!playerst.moving && IsFiring)
+                {
+                    standFireAnim(playerst, dt);
+                }
+                else
+                {
+                    animationhandler(playerst, dt);
+                }
+            }
+
+            //Rendering section
+
             window.setView(camera);
-            inputhandler(playerst, dt); 
-            deathHandler(playerst, dt);
-            handleIntersection(playerst, dt);
-            Gravity(playerst, dt);
-            //enemyAnimation(dEnemy[n_denenmy] , dt);
-            //shooting(dEnemyBullet, playerst, dt , dEnemy[n_denenmy]);
-            camBounds(70, 40, 40, 60);
-            carMovement(map1.car1Spr, -200.f, dt);
-            carMovement(map1.car2Spr, -200.f, dt);
-            playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
-            playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
-            //window.clear(); is this redundent?
             window.draw(map1.backgroundSpr[0]);
             window.draw(map1.mapSpr);
             window.draw(map1.car1Spr);
             window.draw(map1.car2Spr);
-            //window.draw(dEnemy[n_denenmy].enemySpr);
             deathHandler(playerst, dt);
 
-            if (event.key.code == Keyboard::X) 
-            {
-                mainMenu.curState = MAIN;
-            }
-            if (event.key.code == Keyboard::C) 
-            {
-                playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
-                playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
-            } //debugging
             for(int i = 0; i < n_denenmy; i++)
             {
-                dEnemy[i].hitbox.setPosition(dEnemy[i].enemySpr.getPosition());
-                enemyAnimation(dEnemy[i] , dt);
-                shooting(dEnemyBullet, playerst, dt , dEnemy[i]);
                 window.draw(dEnemy[i].enemySpr);
                 window.draw(dEnemy[i].hitbox);
             }
+
             if(dEnemyBullet.isthere)
                 window.draw(dEnemyBullet.bulletSpr);
             
             for (int i = 0; i < nenemy; i++) 
             { 
-                    if(enemy2[i].enemy2Spr.getPosition().x < playerst.megamanSpr.getPosition().x -windowWidth+240.f )
-                    {
-                    enemy2[i].alive = false;
-                    }
-                
                 if (enemy2[i].alive) 
                 {
-                    enemy2[i].timer += dt;
-                    if (enemy2[i].timer >= enemy2[i].frameduration)
-                    {
-                    enemy2[i].timer = 0.0f;
-                    enemy2[i].eIndex = (enemy2[i].eIndex + 1) % 3;
-                    enemy2[i].enemy2Spr.setTextureRect(IntRect(enemy2[i].eIndex * enemy2[i].framewidth, 0, enemy2[i].framewidth, enemy2[i].frameheight) );
-                    }
-                        enemy2[i].enemy2Spr.move(enemy2[i].speed*dt, 0);
-                        enemy2[i].hitbox.setPosition(enemy2[i].enemy2Spr.getPosition());
-                        window.draw(enemy2[i].enemy2Spr);
-                        window.draw(enemy2[i].hitbox); 
+                    window.draw(enemy2[i].enemy2Spr);
+                    window.draw(enemy2[i].hitbox); 
                 }
             }
 
-            
-            bool IsFiring = pBulletupdate(windowmag, playerst, dt, window);
-            if(!playerst.moving && !IsFiring && playerst.touchesground){
-                idleAnim(playerst, dt);
-            }
-            else if(playerst.issliding)
-            {
-                wallSlideAnim(playerst, dt);
-            }
-            else if(!playerst.touchesground && IsFiring )
-            {
-                jumpFireAnim(playerst, dt);
-            }
-            else if(!playerst.touchesground)
-            {
-                jumpAnim(playerst, dt);
-            }
-            else if(playerst.moving &&IsFiring)
-            {
-                runFireAnim(playerst ,dt);
-            }
-            else if(!playerst.moving && IsFiring) // ← add this
-            {
-                standFireAnim(playerst, dt);
-            }
-            else
-            {
-                 animationhandler(playerst, dt);
-            }
-          
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
             
+            for (int i = 0; i < nbullets; i++) 
+            {
+                if (windowmag[i].isthere) 
+                {
+                    window.draw(windowmag[i].bulletSpr);
+                }
+            }
+
             //constants on the screen (aka just health), dont do .draw under it or else it wont function the same as you want
             // if you wanna do .draw   make sure to reuse window.setView(camera); and then use window.draw under it
             window.setView(healthUI);
@@ -510,10 +513,23 @@ int main()
             window.draw(playerst.healthbar);
             window.draw(blackout);
 
+            if (event.key.code == Keyboard::X) 
+            {
+                mainMenu.curState = MAIN;
+            }
+            if (event.key.code == Keyboard::C) 
+            {
+                playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
+                playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
+            } //debugging
 
-            //events of game go here
+            if(isPaused){
+                Text pausedText("PAUSED", mainMenu.font, 50);
+                pausedText.setFillColor(Color::Red);
+                pausedText.setPosition(window.getView().getCenter().x - pausedText.getGlobalBounds().width / 2, window.getView().getCenter().y - pausedText.getGlobalBounds().height / 2);
+                window.draw(pausedText);
+            }
             break;
-
         }
 
         default:
@@ -727,7 +743,7 @@ void playerstats(player& playerst) // p for better writing :D
     playerst.wallSlideTexture.loadFromFile("textures/wallSlideAnimation (30x44).png");
     playerst.idleTexture.loadFromFile("textures/Idle_anim.png");
 
-	playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+	playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
 	playerst.megamanSpr.setScale(2.0f, 2.0f);  
 	playerst.megamanSpr.setTextureRect(IntRect(0, 0, playerst.framewidth, playerst.frameheight));//start with the first frame of the sprite sheet
 	//note we will change this if we want to make a standing animation
@@ -864,7 +880,7 @@ void death_timer(player& playerst,float &dt){
     }
     else{
         playerst.death_timer=5.0f;
-        playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+        playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
         playerst.health = 19;
         playerst.Vx = storedVx;
     }

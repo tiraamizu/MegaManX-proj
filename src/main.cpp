@@ -1202,9 +1202,12 @@ void wallSlideAnim(player& playerst, float dt)
 
     // flip sprite based on which wall player is touching
     if(playerst.toucheswall == playerst.LEFT)
-        playerst.megamanSpr.setScale(-2.f, 2.f);
-    else
+    {
         playerst.megamanSpr.setScale(2.f, 2.f);
+    }
+        
+    else
+        playerst.megamanSpr.setScale(-2.f, 2.f);
 
     playerst.megamanSpr.setTextureRect(
         IntRect(playerst.i * playerst.wallSlideW, 0, playerst.wallSlideW, playerst.wallSlideH)

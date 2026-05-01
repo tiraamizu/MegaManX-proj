@@ -156,11 +156,11 @@ struct newenemy
     Texture enemy2Texture;
     bool alive = true;
     float timer= 0.0f;
-    float frameduration = 0.09f;
-    int framewidth = 44.6; // each frame height and width don't ask how i calculated it 
+    float frameduration = 0.1f;
+    int framewidth = 36; // each frame height and width don't ask how i calculated it 
     int frameheight = 35;
     int eIndex = 0;
-    float speed = -0.03f;
+    float speed = -0.004f;
 
 } enemy2[nenemy];
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
@@ -439,7 +439,7 @@ int main()
                     enemy2[i].eIndex = (enemy2[i].eIndex + 1) % 3;
                     enemy2[i].enemy2Spr.setTextureRect(IntRect(enemy2[i].eIndex * enemy2[i].framewidth, 0, enemy2[i].framewidth, enemy2[i].frameheight) );
                     }
-                        enemy2[i].enemy2Spr.move(enemy2[i].speed, 0);
+                        enemy2[i].enemy2Spr.move(enemy2[i].speed*dt, 0);
                         window.draw(enemy2[i].enemy2Spr);
                 }
             }
@@ -1069,7 +1069,7 @@ void idleAnim(player& playerst , float dt)
 void enemy2status(newenemy& enemy2, float xpos)
 {
     enemy2.enemy2Spr.setPosition( xpos , 247.f );
-    enemy2.enemy2Texture.loadFromFile("textures/enemyrolling2.png");
+    enemy2.enemy2Texture.loadFromFile("textures\\enemyr2(36x34).png");
     enemy2.enemy2Spr.setTexture(enemy2.enemy2Texture); //assigning the texture to the sprite so that we can use it in the game loop
     enemy2.enemy2Spr.setOrigin(enemy2.framewidth/ 2.0f, enemy2.frameheight / 2.0f);	
     enemy2.enemy2Spr.setScale(4.0f, 4.0f);  

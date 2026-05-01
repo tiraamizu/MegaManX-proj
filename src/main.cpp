@@ -20,8 +20,12 @@ const float MegaSpawnY = 100.f;
 enum GameState { MAIN, OPTIONS, GAME };
 
 //SOUND DECLARATIONS
-// SoundBuffer buffer;
-// Sound shoot;
+SoundBuffer buffer;
+SoundBuffer titlebuffer;
+SoundBuffer stagebuffer;
+Sound shoot;
+Sound titlesmusic;
+Sound levelmusic;
 //STRUCTS
 
 //Main Window Resolution
@@ -156,6 +160,14 @@ struct groundobj
     int blockheight = 100.f;
 
 }ground[blocks];
+struct winobj{
+Texture win;
+Sprite winRect;
+float width = 150.f;
+float height = 100.f;
+int winX=15000;
+int winY=465;
+}winobject;
 struct newenemy
 {
     Sprite enemy2Spr;
@@ -180,7 +192,7 @@ void drawMenuSelection(MenuData &m, RenderWindow &window);
 void up(MenuData &m);
 void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
-bool resourcesCheck(MenuData &m);
+bool resourcesCheck(MenuData &m,winobj &winobject);
 void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
@@ -217,6 +229,8 @@ void handleIntersection(float &dt);
 float storedVx = playerst.Vx; // for death functions
 void deathHandler(player& playerst, float &dt);
 void death_timer(player& playerst,float &dt);
+void initwinobject(winobj& winobject,RenderWindow& window);
+void winIntresection(winobj& winobject, RenderWindow& window,player &playerst, bool &won, bool &isPaused);
 
 
 View aspectRatio(View view, float windowWidth, float windowHeight);
@@ -224,7 +238,8 @@ void carMovement(Sprite& car, float carSpeed, float dt);
 //temp functions
 void damage (player& playerst);
 void heal (player& playerst);
-
+bool isPaused = false; 
+bool won = false;
 int main()
 {
     RectangleShape blackout;
@@ -240,7 +255,7 @@ int main()
     MenuData mainMenu;
     MenuData optionsMenu;
 
-    if (!resourcesCheck(mainMenu) || !resourcesCheck(optionsMenu)) {
+    if (!resourcesCheck(mainMenu,winobject) || !resourcesCheck(optionsMenu,winobject)) {
         return 0;
         //crashes program to stop messages (in resourcesCheck) from looping if logo is not found
     };
@@ -250,7 +265,7 @@ int main()
 
     float dt; // delta time and clock for the whole game loop
     Clock clock;
-    bool isPaused = false; 
+    
 
     playerstats(playerst);
     enemybulletstatus(dEnemyBullet);
@@ -333,6 +348,8 @@ int main()
                 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bullet firing code
                 if(event.type == Event::KeyPressed && event.key.code == Keyboard::A)
                 {
+                    shoot.setBuffer(buffer);
+                    shoot.play();
                     for(int i = 0 ; i < nbullets ; i++)
                     {
                         if(!windowmag[i].isthere)//here we are scaning if the slot of the struct array already has a bullet and fired ot empty?
@@ -478,6 +495,8 @@ int main()
             window.draw(map1.car1Spr);
             window.draw(map1.car2Spr);
             deathHandler(playerst, dt);
+            initwinobject(winobject,window);
+            winIntresection(winobject,window,playerst,won,isPaused);
 
             for(int i = 0; i < n_denenmy; i++)
             {
@@ -525,11 +544,17 @@ int main()
                 playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
             } //debugging
 
-            if(isPaused){
+            if(isPaused && !won){
                 Text pausedText("PAUSED", mainMenu.font, 50);
                 pausedText.setFillColor(Color::Red);
                 pausedText.setPosition(window.getView().getCenter().x - pausedText.getGlobalBounds().width / 2, window.getView().getCenter().y - pausedText.getGlobalBounds().height / 2);
                 window.draw(pausedText);
+            }
+             if(isPaused && won){
+                Text winText("WIN", mainMenu.font, 50);
+                winText.setFillColor(Color::Red);
+                winText.setPosition(window.getView().getCenter().x - winText.getGlobalBounds().width / 2, window.getView().getCenter().y - winText.getGlobalBounds().height / 2);
+                window.draw(winText);
             }
             break;
         }
@@ -549,15 +574,27 @@ int main()
 int charSize = 20, xOffset = -100, yOffset = 270;
 
 //Initializes main menu resources
-bool resourcesCheck(MenuData &m) {
+bool resourcesCheck(MenuData &m,winobj &winobject) {
     if (!map1.mapTexture.loadFromFile("textures/map.png")) {
     cout << "ERROR: Could not find textures/map.png" << endl;
         return false;
     }
-    // if(!buffer.loadFromFile("sounds/shoot.wav")){
-    //         cout<<"ERR: shoot.wav not found";
-    //         return false;
-    //         }
+    if(!buffer.loadFromFile("sounds/shoot.wav")){
+            cout<<"ERR: shoot.wav not found";
+            return false;
+            }
+    if(!titlebuffer.loadFromFile("sounds/titlescreen.wav")){
+            cout<<"ERR: titlescreen.wav not found";
+            return false;
+            }
+    if(!stagebuffer.loadFromFile("sounds/stagemusic.wav")){
+            cout<<"ERR: stagemusic.wav not found";
+            return false;
+            }
+    if (!winobject.win.loadFromFile("textures/wingem.png")) {
+    cout << "ERROR: Could not find textures/wingem.png" << endl;
+        return false;
+    }
     if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
@@ -607,6 +644,8 @@ bool resourcesCheck(MenuData &m) {
 }
 //Initializes main menu (note: we pass width and height by value bc we are using them for a calculation, no need to mod them.)
 void initMenu(MenuData &m, float width, float height) {
+                titlesmusic.setBuffer(titlebuffer);
+            titlesmusic.play();
     m.curMaxButtons = 4;
 
     //GAME START
@@ -698,6 +737,9 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
             }
             if (event.key.code == interractionButton) {
                 if (main.curButtonIndex == 0) {
+                    titlesmusic.stop();
+                    levelmusic.setBuffer(stagebuffer);
+                    levelmusic.play();
                     main.curState = GAME;
                 }
                 if (main.curButtonIndex == 2) {
@@ -725,6 +767,9 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 
         case GAME:
             if (event.key.code == Keyboard::X) {
+                levelmusic.stop();
+                titlesmusic.setBuffer(titlebuffer);
+                titlesmusic.play();
                 main.curState = MAIN;
             }
             break;
@@ -901,7 +946,7 @@ void death_timer(player& playerst,float &dt){
 }
 void enemystatus(enemy& denemy ,float &xpos, float &ypos)
 {
-    denemy.enemySpr.setPosition(xpos, ypos);
+    denemy.enemySpr.setPosition(xpos, 170.f);
     denemy.enemyTexture.loadFromFile("textures/enemies_full2.png");
     denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
     denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
@@ -910,7 +955,7 @@ void enemystatus(enemy& denemy ,float &xpos, float &ypos)
     denemy.hitbox.setOrigin((denemy.framewidth * 2.2f) / 2.f,(denemy.frameheight * 2.2f) / 2.f);
     denemy.hitbox.setSize(Vector2f(denemy.framewidth * 2.2f, denemy.frameheight * 2.2f));
     
-    denemy.hitbox.setPosition(xpos, 220.f);
+    denemy.hitbox.setPosition(xpos, 170.f);
     denemy.hitbox.setFillColor(Color::Transparent);
     denemy.hitbox.setOutlineColor(Color::Red);  //testing 
     denemy.hitbox.setOutlineThickness(1.f);     //testing
@@ -1284,7 +1329,18 @@ void deathHandler(player& playerst ,float &dt){
         playerst.health = 0;
     }
 }
-
+void initwinobject(winobj& winobject,RenderWindow& window){
+winobject.winRect.setPosition(winobject.winX,winobject.winY);
+winobject.winRect.setOrigin(winobject.width/2,winobject.height/2);
+winobject.winRect.setTexture(winobject.win);
+window.draw(winobject.winRect);
+}
+void winIntresection(winobj& winobject, RenderWindow& window,player &playerst, bool &won, bool &isPaused){
+    if(playerst.megamanSpr.getGlobalBounds().intersects(winobject.winRect.getGlobalBounds())){
+        isPaused = true;
+        won = true;
+    }
+}
 int checkPlayerWallIntersection(int ind) {
   // Checks if the player are on the same x-axis of the ground, then they intersect vertically. Otherwise, they intersect horizontally
   // 1 = Player's left touches the wall, 2 = Player's right touches the wall

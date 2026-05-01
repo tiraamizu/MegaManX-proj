@@ -715,7 +715,7 @@ void playerstats(player& playerst) // p for better writing :D
 	playerst.megamanTexture.loadFromFile("textures/running35-34.png");
 	playerst.runFireTexture.loadFromFile("textures/firing-moving(41-36).png");
     playerst.jumpTexture.loadFromFile("textures/jump(30-46).png");
-    playerst.jumpFireTexture.loadFromFile("C:\\Users\\Smileserver\\Desktop\\fire-jumpnew3.png");
+    playerst.jumpFireTexture.loadFromFile("textures/fire-Jumping(36-52).png");
     playerst.wallSlideTexture.loadFromFile("textures/wallSlideAnimation (30x44).png");
     playerst.idleTexture.loadFromFile("textures/Idle_anim.png");
 

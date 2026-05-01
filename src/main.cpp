@@ -104,7 +104,7 @@ struct enemy {
     Texture enemyTexture;
     Sprite enemySpr;
     bool atFireFrame = false;
-    bool touchesground = true;
+    
     float detectionRange = 500.f;
     bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
     bool alive = true;
@@ -115,7 +115,10 @@ struct enemy {
     int eIndex = 0;
     bool goingForward = true; // ping-pong direction flag
     bool hasFired    = false;
-} dEnemy[n_denenmy]; ; 
+    float Vy = 0.0f;
+    bool touchesground = false;
+    RectangleShape hitbox;
+} dEnemy[n_denenmy];
 struct bullet
 {
     Texture bulletTexture;
@@ -160,8 +163,10 @@ struct newenemy
     int framewidth = 36; // each frame height and width don't ask how i calculated it 
     int frameheight = 35;
     int eIndex = 0;
-    float speed = -0.004f;
-
+    float speed = -150.f;
+    float Vy = 0.0f;
+    bool touchesground = false;
+    RectangleShape hitbox;
 } enemy2[nenemy];
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
@@ -415,10 +420,11 @@ int main()
             } //debugging
             for(int i = 0; i < n_denenmy; i++)
             {
-            enemyAnimation(dEnemy[i] , dt);
-            shooting(dEnemyBullet, playerst, dt , dEnemy[i]);
-            window.draw(dEnemy[i].enemySpr);
-
+                dEnemy[i].hitbox.setPosition(dEnemy[i].enemySpr.getPosition());
+                enemyAnimation(dEnemy[i] , dt);
+                shooting(dEnemyBullet, playerst, dt , dEnemy[i]);
+                window.draw(dEnemy[i].enemySpr);
+                window.draw(dEnemy[i].hitbox);
             }
             if(dEnemyBullet.isthere)
                 window.draw(dEnemyBullet.bulletSpr);
@@ -440,7 +446,9 @@ int main()
                     enemy2[i].enemy2Spr.setTextureRect(IntRect(enemy2[i].eIndex * enemy2[i].framewidth, 0, enemy2[i].framewidth, enemy2[i].frameheight) );
                     }
                         enemy2[i].enemy2Spr.move(enemy2[i].speed*dt, 0);
+                        enemy2[i].hitbox.setPosition(enemy2[i].enemy2Spr.getPosition());
                         window.draw(enemy2[i].enemy2Spr);
+                        window.draw(enemy2[i].hitbox); 
                 }
             }
 
@@ -476,6 +484,7 @@ int main()
           
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
+            
             //constants on the screen (aka just health), dont do .draw under it or else it wont function the same as you want
             // if you wanna do .draw   make sure to reuse window.setView(camera); and then use window.draw under it
             window.setView(healthUI);
@@ -875,13 +884,19 @@ void handleIntersection(player& playerst , float &dt) {
 }
 void enemystatus(enemy& denemy ,float denemypos)
 {
- denemy.enemySpr.setPosition(denemypos, 220.f);
- denemy.enemyTexture.loadFromFile("textures/enemies_full2.png");
- denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
- denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
- denemy.enemySpr.setScale(2.5f, 2.5f);  
-denemy.enemySpr.setTextureRect(IntRect({0, 0, denemy.framewidth, denemy.frameheight}));
-
+    denemy.enemySpr.setPosition(denemypos, 220.f);
+    denemy.enemyTexture.loadFromFile("textures/enemies_full2.png");
+    denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
+    denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
+    denemy.enemySpr.setScale(2.5f, 2.5f);  
+    denemy.enemySpr.setTextureRect(IntRect({0, 0, denemy.framewidth, denemy.frameheight}));
+    denemy.hitbox.setOrigin((denemy.framewidth * 2.2f) / 2.f,(denemy.frameheight * 2.2f) / 2.f);
+    denemy.hitbox.setSize(Vector2f(denemy.framewidth * 2.2f, denemy.frameheight * 2.2f));
+    
+    denemy.hitbox.setPosition(denemypos, 220.f);
+    denemy.hitbox.setFillColor(Color::Transparent);
+    denemy.hitbox.setOutlineColor(Color::Red);  //testing 
+    denemy.hitbox.setOutlineThickness(1.f);     //testing
 }
 void enemydetection(enemy& dEnemy , player& playerst)
 {
@@ -1073,7 +1088,12 @@ void enemy2status(newenemy& enemy2, float xpos)
     enemy2.enemy2Spr.setTexture(enemy2.enemy2Texture); //assigning the texture to the sprite so that we can use it in the game loop
     enemy2.enemy2Spr.setOrigin(enemy2.framewidth/ 2.0f, enemy2.frameheight / 2.0f);	
     enemy2.enemy2Spr.setScale(4.0f, 4.0f);  
-  
+    enemy2.hitbox.setSize(Vector2f(enemy2.framewidth * 4.f, enemy2.frameheight * 4.f));
+    enemy2.hitbox.setOrigin(enemy2.framewidth * 2.f, enemy2.frameheight * 2.f);
+    enemy2.hitbox.setPosition(xpos, 247.f);
+    enemy2.hitbox.setFillColor(Color::Transparent);
+    enemy2.hitbox.setOutlineColor(Color::Red);    // optional: see it while debugging
+    enemy2.hitbox.setOutlineThickness(1.f);
 
 }
 

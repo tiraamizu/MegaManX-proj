@@ -213,6 +213,7 @@ void createBlock(int index, float x, float y, float width, float height);
 void playerhitbox_pos(player& playerst);
 void check_invincibility(player& playerst,float &dt);
 void handleIntersection(float &dt);
+void flicker();
 
 float storedVx = playerst.Vx; // for death functions
 void deathHandler(player& playerst, float &dt);
@@ -294,7 +295,7 @@ int main()
 
     while (window.isOpen())
     {
-        dt = clock.restart().asSeconds();// this calculate the deltatime don't ask how:D
+        dt = clock.restart().asSeconds();// this calculate the deltatime
         if (dt > 0.05f) {
             dt = 0.05f; 
         } // dt limiter to prevent lagspikes from breaking some game stuff
@@ -400,7 +401,7 @@ int main()
             //Game logic stuff section
             if (!isPaused)
             {
-                cout << playerst.health << ' ' << playerst.inv_timer << '\n';
+                // cout << playerst.health << ' ' << playerst.inv_timer << '\n';
                 inputhandler(playerst, dt); 
                 deathHandler(playerst, dt);
                 handleIntersection(dt);
@@ -876,9 +877,13 @@ void createBlock(int index, float x, float y, float width, float height) {
 void check_invincibility(player& playerst,float &dt){
     if (playerst.invincible==true &&playerst.inv_timer>=0)
     {
+        int dt100 = dt*10000000;
+        int inv100 = playerst.inv_timer*10000000;
+        if (dt100 && (inv100/dt100)%4 == 0) {cout << "Im flickering" << '\n'; flicker();}
         playerst.inv_timer-=dt;
     }
     else{
+        playerst.megamanSpr.setColor(Color(255,255,255,255));
         playerst.invincible=false;
         playerst.inv_timer=1.0f;
     }
@@ -1366,4 +1371,9 @@ void handleIntersection(float &dt) {
     handlePlayerIntersection(dt);
     handleEnemy1Intersection(dt);
     handleEnemy2Intersection(dt);
+}
+
+void flicker() {
+    auto curr = playerst.megamanSpr.getColor();
+    playerst.megamanSpr.setColor(Color(255,255,255,(130+(curr.a%255))));
 }

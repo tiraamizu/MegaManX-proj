@@ -140,7 +140,7 @@ struct enemybullet
 {
 
 
-    float speed =800.f ;
+    float speed =400.f ;
 
     int direction = 1;  
     bool isthere = false;
@@ -1014,16 +1014,17 @@ void shooting(enemybullet& dEnemyBullet,player& playerst,float dt , enemy& dEnem
                         
 
             
-    
-            if(dEnemy.enemySpr.getPosition().x > playerst.megamanSpr.getPosition().x)
+            if(playerst.megamanSpr.getPosition().x> dEnemy.enemySpr.getPosition().x) //the bug happened because of the sprite original direction
+
             {
-                            
-                dEnemyBullet.direction = -1;
+                dEnemyBullet.direction = 1;
+                dEnemyBullet.bulletSpr.setScale(-2.0f, 2.0f);
+
             }
             else
             {
-                dEnemyBullet.direction = 1;
-             
+                dEnemyBullet.direction = -1;
+                dEnemyBullet.bulletSpr.setScale(2.0f, 2.0f);
             }
         }
 

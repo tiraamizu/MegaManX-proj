@@ -1345,6 +1345,17 @@ void handlePlayerIntersection(float &dt) {
 }
 
 void handleEnemy1Intersection(float &dt) {
+  // Platfrom-Enemy
+  for (int en = -1; en < 2; en++) {
+    for(int i = -1 ; i < blocks ; i++)
+    {
+        if (dEnemy[en].hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) 
+        {
+            // Ground-Enemy: Set enemy vy = 0
+            dEnemy[en].touchesground = true;
+        }
+    }
+  }
 }
 
 void handleEnemy2Intersection(float &dt) {

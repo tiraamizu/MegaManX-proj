@@ -73,7 +73,7 @@ struct player
     RectangleShape healthbar;
     float Vx = 300.f;
     float Vy = 0.0f;
-    float inv_timer=3.0;
+    float inv_timer=1.0;
     float death_timer=5.0f;
     Vector2f Pos_Tracker; 
 	float frameduration = 0.1f;
@@ -93,7 +93,7 @@ struct player
     int wallSlideW = 30, wallSlideH = 44, wallSlideFrames = 5;
     int idleAnimW = 30, idleAnimH = 35, idleAnimFrames = 3;
 
-  bool invincible=true;
+  bool invincible=false;
   enum dir {NONE,LEFT,RIGHT};
   dir toucheswall = NONE; 
   bool moving = false;
@@ -191,7 +191,7 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 //2. Game function declarations
 void playerstats(player& playerst);
 void bulletstates(bullet& prj);
-void enemystatus(enemy& dEnemy,float denemypos);
+void enemystatus(enemy& dEnemy,float &xpos, float &ypos);
 void enemybulletstatus(enemybullet& dEnemyBullet);
 void shooting(enemybullet& dEnemyBullet,player& playerst, float dt , enemy& dEenmy);
 void update(player& playerst ,enemybullet& dEnemyBullet , float dt );
@@ -211,8 +211,8 @@ void enemy2status(newenemy& enemy2, float xpos);
 void Gravity(player& playerst, float &dt);
 void createBlock(int index, float x, float y, float width, float height);
 void playerhitbox_pos(player& playerst);
-void check_invincibility(player& playerst,float dt);
-void handleIntersection(player& playerst , float &dt);
+void check_invincibility(player& playerst,float &dt);
+void handleIntersection(float &dt);
 
 float storedVx = playerst.Vx; // for death functions
 void deathHandler(player& playerst, float &dt);
@@ -260,8 +260,9 @@ int main()
     }
 
     for (int i = 0; i < n_denenmy; i++) {
-        float denemypos = 1000.f + (i * 2000.f);
-        enemystatus(dEnemy[i], denemypos);
+        float xpos = 1000.f + (i * 2000.f);
+        float ypos = 0;
+        enemystatus(dEnemy[i], xpos, ypos);
     }
 
     for (int i = 0; i < nenemy; i++) {
@@ -399,9 +400,10 @@ int main()
             //Game logic stuff section
             if (!isPaused)
             {
+                cout << playerst.health << ' ' << playerst.inv_timer << '\n';
                 inputhandler(playerst, dt); 
                 deathHandler(playerst, dt);
-                handleIntersection(playerst, dt);
+                handleIntersection(dt);
                 Gravity(playerst, dt);
                 camBounds(70, 40, 40, 60);
                 carMovement(map1.car1Spr, -200.f, dt);
@@ -845,6 +847,17 @@ void Gravity(player& playerst, float &dt)
   else {
     playerst.Vy = 0;
   }
+
+
+  for (int i = 0; i < 2; i++) {
+    dEnemy[i].enemySpr.move(0, dEnemy[i].Vy *dt);
+    if(!dEnemy[i].touchesground) {
+        dEnemy[i].Vy += gravity * dt; //vf = vi + at for proper gravity that depends on dt to streamline everything.
+    }
+    else {
+        dEnemy[i].Vy = 0;
+    }
+  }
 };
 void createBlock(int index, float x, float y, float width, float height) {
     ground[index].blockwidth = width;
@@ -863,11 +876,11 @@ void createBlock(int index, float x, float y, float width, float height) {
 void check_invincibility(player& playerst,float &dt){
     if (playerst.invincible==true &&playerst.inv_timer>=0)
     {
-        playerst.inv_timer=playerst.inv_timer-dt;
+        playerst.inv_timer-=dt;
     }
     else{
         playerst.invincible=false;
-        playerst.inv_timer=3.0f;
+        playerst.inv_timer=1.0f;
     }
     
 }
@@ -886,54 +899,9 @@ void death_timer(player& playerst,float &dt){
     }
     
 }
-
-int checkWallIntersection(int ind) {
-  // Checks if the player are on the same x-axis of the ground, then they intersect vertically. Otherwise, they intersect horizontally
-  // 1 = Player's left touches the wall, 2 = Player's right touches the wall
-  auto start = ground[ind].gnd.getPosition().x-0.5*ground[ind].blockwidth;
-  auto end = ground[ind].gnd.getPosition().x+0.5*ground[ind].blockwidth;
-  if (playerst.Pos_Tracker.x-end > 0.5*playerst.framewidth) return 1;
-  if (start-playerst.Pos_Tracker.x > 0.5*playerst.framewidth) return 2;
-  return 0;
-}
-
-void handleIntersection(player& playerst , float &dt) {
-  playerst.touchesground = false;
-  playerst.toucheswall = player::NONE;
-  playerst.issliding = false;
-  // Platfrom-Player
-  for(int i = 0 ; i < blocks ; i++)
-  {
-    if (playerst.hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) 
-    {
-      // Wall-Player : Set player vx = 0;
-      if (checkWallIntersection(i) == 1) {
-        playerst.toucheswall = player::LEFT;
-      }
-      else if (checkWallIntersection(i) == 2) {
-        playerst.toucheswall = player::RIGHT;
-      }
-      else if (playerst.Vy >= 0)
-      {
-        playerst.touchesground = true;
-        // Set player vy = 0;
-      }
-    }
-  }
-  
-  // Sliding
-  if (playerst.touchesground == false && playerst.toucheswall != player::NONE) playerst.issliding = true;
-  
-  // Enemy-player : Make the player get hit
-
-  // Enemy-Platform
-
-  // Enemy-Wall
-
-}
-void enemystatus(enemy& denemy ,float denemypos)
+void enemystatus(enemy& denemy ,float &xpos, float &ypos)
 {
-    denemy.enemySpr.setPosition(denemypos, 220.f);
+    denemy.enemySpr.setPosition(xpos, ypos);
     denemy.enemyTexture.loadFromFile("textures/enemies_full2.png");
     denemy.enemySpr.setTexture(denemy.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
     denemy.enemySpr.setOrigin(denemy.framewidth/ 2.0f, denemy.frameheight / 2.0f);	
@@ -942,7 +910,7 @@ void enemystatus(enemy& denemy ,float denemypos)
     denemy.hitbox.setOrigin((denemy.framewidth * 2.2f) / 2.f,(denemy.frameheight * 2.2f) / 2.f);
     denemy.hitbox.setSize(Vector2f(denemy.framewidth * 2.2f, denemy.frameheight * 2.2f));
     
-    denemy.hitbox.setPosition(denemypos, 220.f);
+    denemy.hitbox.setPosition(xpos, 220.f);
     denemy.hitbox.setFillColor(Color::Transparent);
     denemy.hitbox.setOutlineColor(Color::Red);  //testing 
     denemy.hitbox.setOutlineThickness(1.f);     //testing
@@ -1146,7 +1114,6 @@ void enemy2status(newenemy& enemy2, float xpos)
     enemy2.hitbox.setOutlineThickness(1.f);
 
 }
-
 void jumpAnim(player& playerst, float dt) {
     if(playerst.megamanSpr.getTexture() != &playerst.jumpTexture) {
         playerst.megamanSpr.setTexture(playerst.jumpTexture);
@@ -1166,9 +1133,6 @@ void jumpAnim(player& playerst, float dt) {
         IntRect(playerst.i * playerst.jumpW, 0,playerst.jumpW, playerst.jumpH)
     );
 }
-
-
-
 void jumpFireAnim(player& playerst, float dt) {
     if(playerst.megamanSpr.getTexture() != &playerst.jumpFireTexture) {
         playerst.megamanSpr.setTexture(playerst.jumpFireTexture);
@@ -1187,7 +1151,6 @@ void jumpFireAnim(player& playerst, float dt) {
         IntRect(playerst.i * playerst.fireJumpW, 0, playerst.fireJumpW, playerst.fireJumpH)
     );
 }
-
 void standFireAnim(player& playerst, float dt)
 {
     playerst.megamanSpr.setTexture(playerst.runFireTexture);
@@ -1197,8 +1160,6 @@ void standFireAnim(player& playerst, float dt)
     playerst.megamanSpr.setTextureRect(
         IntRect(0, 0, playerst.fireRunW, playerst.fireRunH));
 }
-
-
 void wallSlideAnim(player& playerst, float dt)
 {
     if(playerst.megamanSpr.getTexture() != &playerst.wallSlideTexture)
@@ -1227,8 +1188,6 @@ void wallSlideAnim(player& playerst, float dt)
         IntRect(playerst.i * playerst.wallSlideW, 0, playerst.wallSlideW, playerst.wallSlideH)
     );
 }
-
-
 bool pBulletupdate(bullet windowmag[] ,player& playerst ,float dt,RenderWindow& window)
 {
     bool IsFiring = false;
@@ -1309,7 +1268,6 @@ View aspectRatio(View view, float windowWidth, float windowHeight) {
     view.setViewport(FloatRect(vpLeft, vpTop, vpWidth, vpHeight));
     return view;
 }
-
 void health_blockout(player& playerst,RectangleShape& blackout){
    float X=(19-playerst.health)*ratio_health;
     blackout.setScale(1,X);
@@ -1325,4 +1283,76 @@ void deathHandler(player& playerst ,float &dt){
     if(playerst.megamanSpr.getPosition().y > windowHeight + 100){ // if player falls off the map
         playerst.health = 0;
     }
+}
+
+int checkPlayerWallIntersection(int ind) {
+  // Checks if the player are on the same x-axis of the ground, then they intersect vertically. Otherwise, they intersect horizontally
+  // 1 = Player's left touches the wall, 2 = Player's right touches the wall
+  auto start = ground[ind].gnd.getPosition().x-0.5*ground[ind].blockwidth;
+  auto end = ground[ind].gnd.getPosition().x+0.5*ground[ind].blockwidth;
+  if (playerst.Pos_Tracker.x-end > 0.5*playerst.framewidth) return 1;
+  if (start-playerst.Pos_Tracker.x > 0.5*playerst.framewidth) return 2;
+  return 0;
+}
+void handlePlayerIntersection(float &dt) {
+  playerst.touchesground = false;
+  playerst.toucheswall = player::NONE;
+  playerst.issliding = false;
+  check_invincibility(playerst, dt);
+
+  // Platfrom-Player
+  for(int i = 0 ; i < blocks ; i++)
+  {
+    if (playerst.hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) 
+    {
+      // Wall-Player: Set player vx = 0
+      if (checkPlayerWallIntersection(i) == 1) {
+        playerst.toucheswall = player::LEFT;
+      }
+      else if (checkPlayerWallIntersection(i) == 2) {
+        playerst.toucheswall = player::RIGHT;
+      }
+      // Ground-Player: Set player vy = 0
+      else if (playerst.Vy >= 0)
+      {
+        playerst.touchesground = true;
+      }
+    }
+  }
+  
+  // Sliding
+  if (playerst.touchesground == false && playerst.toucheswall != player::NONE) playerst.issliding = true;
+  
+  // Enemy-player : Make the player get hit
+  // With Enemy 1
+  for (int i = 0; i < 2; i++) {
+    if (playerst.hitbox.getGlobalBounds().intersects(dEnemy[i].hitbox.getGlobalBounds()) || playerst.hitbox.getGlobalBounds().intersects(dEnemyBullet.bulletSpr.getGlobalBounds())) {
+        if (!playerst.invincible) {
+            playerst.health--;
+            playerst.invincible = true;
+        }
+    }
+  }
+  // With Enemy 2
+  for (int i = 0; i < 2; i++) {
+    if (playerst.hitbox.getGlobalBounds().intersects(enemy2[i].hitbox.getGlobalBounds())) {
+        if (!playerst.invincible) {
+            playerst.health--;
+            playerst.invincible = true;
+        }
+    }
+  }
+}
+
+void handleEnemy1Intersection(float &dt) {
+}
+
+void handleEnemy2Intersection(float &dt) {
+
+}
+
+void handleIntersection(float &dt) {
+    handlePlayerIntersection(dt);
+    handleEnemy1Intersection(dt);
+    handleEnemy2Intersection(dt);
 }

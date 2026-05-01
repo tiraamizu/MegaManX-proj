@@ -86,7 +86,7 @@ struct player
     int runW=35, runH=34, runFrames=11,runFireFrames=10;
     int fireRunW=41, fireRunH=36, fireRunFrames=10;
     int jumpW=30, jumpH=46, jumpFrames=7;
-    int fireJumpW=36, fireJumpH=45, fireJumpFrames=7;
+    int fireJumpW=36, fireJumpH=52, fireJumpFrames=7;
     int wallSlideW = 30, wallSlideH = 44, wallSlideFrames = 5;
     int idleAnimW = 30, idleAnimH = 35, idleAnimFrames = 3;
 
@@ -353,7 +353,17 @@ int main()
                         //  shoot.play();
  
                         Transform megaTransform = playerst.megamanSpr.getTransform();
-                        Vector2f spawnPos = megaTransform.transformPoint(30.f, 15.f);
+                        Vector2f spawnPos ;
+                        if(!playerst.touchesground) 
+                        {
+                            spawnPos = megaTransform.transformPoint(34.f, 22.f);
+                           
+                        }
+                        else
+                        {
+                            spawnPos = megaTransform.transformPoint(34.f, 15.f);
+                        }
+                        
                         windowmag[i].bulletSpr.setPosition(spawnPos);
                         windowmag[i].bulletSpr.setScale(2.0f * windowmag[i].direction, 2.0f);
                         break;
@@ -705,7 +715,7 @@ void playerstats(player& playerst) // p for better writing :D
 	playerst.megamanTexture.loadFromFile("textures/running35-34.png");
 	playerst.runFireTexture.loadFromFile("textures/firing-moving(41-36).png");
     playerst.jumpTexture.loadFromFile("textures/jump(30-46).png");
-    playerst.jumpFireTexture.loadFromFile("textures/firing-jumping(36-45)1.png");
+    playerst.jumpFireTexture.loadFromFile("C:\\Users\\Smileserver\\Desktop\\fire-jumpnew3.png");
     playerst.wallSlideTexture.loadFromFile("textures/wallSlideAnimation (30x44).png");
     playerst.idleTexture.loadFromFile("textures/Idle_anim.png");
 
@@ -1122,7 +1132,7 @@ void jumpAnim(player& playerst, float dt) {
 void jumpFireAnim(player& playerst, float dt) {
     if(playerst.megamanSpr.getTexture() != &playerst.jumpFireTexture) {
         playerst.megamanSpr.setTexture(playerst.jumpFireTexture);
-        playerst.megamanSpr.setOrigin(playerst.framewidth / 2.f, playerst.frameheight / 2.f);
+        playerst.megamanSpr.setOrigin(playerst.fireJumpW / 2.f, playerst.fireJumpH / 2.f);
         playerst.i = 0;
         playerst.timer = 0.f;
     }
@@ -1134,7 +1144,7 @@ void jumpFireAnim(player& playerst, float dt) {
             playerst.i++; // clamp, don't loop
     }
     playerst.megamanSpr.setTextureRect(
-        IntRect(playerst.i * playerst.framewidth, 0, playerst.framewidth, playerst.frameheight)
+        IntRect(playerst.i * playerst.fireJumpW, 0, playerst.fireJumpW, playerst.fireJumpH)
     );
 }
 

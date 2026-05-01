@@ -315,9 +315,7 @@ int main()
             if (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape)
             {
                 isPaused = !isPaused;
-                if (!isPaused) {
-                    clock.restart();
-                }
+                if (!isPaused) clock.restart();
             }
 
             if (!isPaused && mainMenu.curState == GAME)
@@ -362,7 +360,7 @@ int main()
                             }
                             
                             windowmag[i].bulletSpr.setPosition(spawnPos);
-                            windowmag[i].bulletSpr.setScale(2.0f * windowmag[i].direction, 2.0f);
+                            windowmag[i].bulletSpr.setScale(windowmag[i].direction, 1.0f); // Reverted scale to 1.0
                             break;
                             // this is the most IMPORTANT line here i hope you know why:D
                             //look if this break wasn't here because this loop must on;y trigger once it found the 
@@ -395,8 +393,6 @@ int main()
 
         case GAME:
         {
-
-            //Game logic stuff section
             if (!isPaused)
             {
                 inputhandler(playerst, dt); 
@@ -468,8 +464,6 @@ int main()
                 }
             }
 
-            //Rendering section
-
             window.setView(camera);
             window.draw(map1.backgroundSpr[0]);
             window.draw(map1.mapSpr);
@@ -513,24 +507,32 @@ int main()
             window.draw(playerst.healthbar);
             window.draw(blackout);
 
+            if(isPaused)
+            {
+                Text pausedText("PAUSED", mainMenu.font, 50);
+                pausedText.setFillColor(Color::Red);
+                pausedText.setOrigin(pausedText.getGlobalBounds().width / 2, pausedText.getGlobalBounds().height / 2);
+                pausedText.setPosition(window.getView().getCenter().x, window.getView().getCenter().y);
+                window.draw(pausedText);
+            }
+
             if (event.key.code == Keyboard::X) 
             {
                 mainMenu.curState = MAIN;
             }
             if (event.key.code == Keyboard::C) 
             {
-                playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
+                playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
                 playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
             } //debugging
-
-            if(isPaused){
-                Text pausedText("PAUSED", mainMenu.font, 50);
-                pausedText.setFillColor(Color::Red);
-                pausedText.setPosition(window.getView().getCenter().x - pausedText.getGlobalBounds().width / 2, window.getView().getCenter().y - pausedText.getGlobalBounds().height / 2);
-                window.draw(pausedText);
-            }
             break;
         }
+            if(isPaused){
+                Text pausedTxt("PAUSED", mainMenu.font, 50);
+                pausedTxt.setFillColor(Color::White);
+                pausedTxt.setPosition(window.getView().getCenter().x - pausedTxt.getGlobalBounds().width / 2, window.getView().getCenter().y - 	pausedTxt.getGlobalBounds().height / 2); // Center the text on the screen
+                window.draw(pausedTxt);
+            }
 
         default:
             mainMenu.curState = MAIN;

@@ -72,6 +72,7 @@ struct player
     float Vx = 300.f;
     float Vy = 0.0f;
     float inv_timer=3.0;
+    float death_timer=5.0f;
     Vector2f Pos_Tracker; 
 	float frameduration = 0.1f;
     float jumpFramrDuration = 0.12f;
@@ -210,6 +211,10 @@ void createBlock(int index, float x, float y, float width, float height);
 void playerhitbox_pos(player& playerst);
 void check_invincibility(player& playerst,float dt);
 void handleIntersection(player& playerst , float &dt);
+
+float storedVx = playerst.Vx; // for death functions
+void deathHandler(player& playerst, float &dt);
+void death_timer(player& playerst,float &dt);
 
 
 View aspectRatio(View view, float windowWidth, float windowHeight);
@@ -404,6 +409,7 @@ int main()
         {
             window.setView(camera);
             inputhandler(playerst, dt); 
+            deathHandler(playerst, dt);
             handleIntersection(playerst, dt);
             Gravity(playerst, dt);
             //enemyAnimation(dEnemy[n_denenmy] , dt);
@@ -419,7 +425,7 @@ int main()
             window.draw(map1.car1Spr);
             window.draw(map1.car2Spr);
             //window.draw(dEnemy[n_denenmy].enemySpr);
-            
+            deathHandler(playerst, dt);
 
             if (event.key.code == Keyboard::X) 
             {
@@ -838,7 +844,7 @@ void createBlock(int index, float x, float y, float width, float height) {
 
 // Platform Function syntax: createBlock(block you want to start from (Starting block), number of blocks you want to add starting from aforementioned Starting Block, startingXPosition, yPos, Spacing Between Blocks);
 
-void check_invincibility(player& playerst,float dt){
+void check_invincibility(player& playerst,float &dt){
     if (playerst.invincible==true &&playerst.inv_timer>=0)
     {
         playerst.inv_timer=playerst.inv_timer-dt;
@@ -846,6 +852,21 @@ void check_invincibility(player& playerst,float dt){
     else{
         playerst.invincible=false;
         playerst.inv_timer=3.0f;
+    }
+    
+}
+void death_timer(player& playerst,float &dt){
+    if (playerst.health>=0 &&playerst.death_timer>=0)
+    {
+        playerst.death_timer=playerst.death_timer-dt;
+        playerst.Vx = 0.f;
+        
+    }
+    else{
+        playerst.death_timer=5.0f;
+        playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+        playerst.health = 19;
+        playerst.Vx = storedVx;
     }
     
 }
@@ -1279,4 +1300,12 @@ void health_blockout(player& playerst,RectangleShape& blackout){
 }
 void carMovement(Sprite& car, float carSpeed, float dt){
     car.move(carSpeed * dt, 0);
+}
+void deathHandler(player& playerst ,float &dt){
+    if(playerst.health <= 0){
+        death_timer(playerst, dt);
+    }
+    if(playerst.megamanSpr.getPosition().y > windowHeight + 100){ // if player falls off the map
+        playerst.health = 0;
+    }
 }

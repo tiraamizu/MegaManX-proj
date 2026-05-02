@@ -16,8 +16,9 @@ const int blocks = 100;
 const float ratio_health=3.84;
 const float MegaSpawnX = 500.f;
 const float MegaSpawnY = 100.f;
+float musicVolume = 50.f;
 
-enum GameState { MAIN, OPTIONS, GAME };
+enum GameState { MAIN, OPTIONS, GAME, AUDIO};
 
 //SOUND DECLARATIONS
 SoundBuffer buffer;
@@ -191,7 +192,7 @@ Sprite winRect;
 float width = 150.f;
 float height = 100.f;
 int winX=15000;
-int winY=465;
+int winY=315;
 }winobject;
 
 //ّّ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~GAME FUNCTIONS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -204,10 +205,12 @@ int winY=465;
 //## Menu declaration functions (for main menu and options menu)
 void initMenu(MenuData &m, float width, float height);
 void initOptions(MenuData &m, float width, float height);
+void initAudio(MenuData &m, float width, float height, float &musicVolume);
 void drawMenuSelection(MenuData &m, RenderWindow &window);
 void up(MenuData &m);
 void down(MenuData &m);
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton);
+void volumeAdjustment(MenuData& audioMenu, float &musicVolume, float increaseAmount);
 bool resourcesCheck(MenuData &m,winobj &winobject);
 void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
@@ -289,14 +292,16 @@ int main()
 
     MenuData mainMenu;
     MenuData optionsMenu;
+    MenuData audioMenu;
 
-    if (!resourcesCheck(mainMenu,winobject) || !resourcesCheck(optionsMenu,winobject)) {
-        return 0;
+    if (!resourcesCheck(mainMenu,winobject) || !resourcesCheck(optionsMenu,winobject) || !resourcesCheck(audioMenu,winobject)) {
+        cout<< "Error loading resources. Please check the file paths and ensure all resources are available." << endl;
         //crashes program to stop messages (in resourcesCheck) from looping if logo is not found
     };
 
     initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu in 1st argument, 2nd and 3rd arguments are used for calculations regarding positions of menu items.
     initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //same as initMenu but for options menu.
+    initAudio(audioMenu, (float)window.getSize().x, (float)window.getSize().y, musicVolume); //same as initMenu but for audio menu.
 
     float dt; // delta time and clock for the whole game loop
     Clock clock;
@@ -427,7 +432,7 @@ int main()
                     }
                 }
             }
-            menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
+            menuSwitchHandler(window, event, mainMenu, optionsMenu, audioMenu, interractionButton);
         }
 
         window.clear();
@@ -444,6 +449,10 @@ int main()
 
         case OPTIONS:
             drawMenuSelection(optionsMenu, window);
+            break;
+
+        case AUDIO:
+            drawMenuSelection(audioMenu, window);
             break;
 
         case GAME:
@@ -574,6 +583,9 @@ int main()
             {
                 playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
                 playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
+                isPaused = false;
+                won = false;
+                playerst.health = 19;
             } //debugging
 
             if(isPaused && !won){
@@ -584,7 +596,7 @@ int main()
             }
              if(isPaused && won){
                 Text winText("WIN", mainMenu.font, 50);
-                winText.setFillColor(Color::Red);
+                winText.setFillColor(Color::Green);
                 winText.setPosition(window.getView().getCenter().x - winText.getGlobalBounds().width / 2, window.getView().getCenter().y - winText.getGlobalBounds().height / 2);
                 window.draw(winText);
             }
@@ -676,38 +688,31 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
 }
 //Initializes main menu (note: we pass width and height by value bc we are using them for a calculation, no need to mod them.)
 void initMenu(MenuData &m, float width, float height) {
-                titlesmusic.setBuffer(titlebuffer);
-            titlesmusic.play();
-    m.curMaxButtons = 4;
+    titlesmusic.setBuffer(titlebuffer);
+    titlesmusic.play();
+    titlesmusic.setLoop(true);
+    m.curMaxButtons = 3;
 
     //GAME START
     m.menuSelection[0].setFont(m.font);
     m.menuSelection[0].setFillColor(m.selectedColor);
     m.menuSelection[0].setString("GAME START");
     m.menuSelection[0].setCharacterSize(charSize);
-    m.menuSelection[0].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1) + yOffset);
-
-    //PASS WORD
-    m.menuSelection[1].setFont(m.font);
-    m.menuSelection[1].setFillColor(m.unselectedColor);
-    m.menuSelection[1].setString("PASS WORD");
-    m.menuSelection[1].setCharacterSize(charSize);
-    m.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1.5) + yOffset);
+    m.menuSelection[0].setPosition(((width / 2)) + xOffset, (height / (MAX_ITEM_NO + 10) * 1) + yOffset);
 
     //OPTION MODE
-    m.menuSelection[2].setFont(m.font);
-    m.menuSelection[2].setFillColor(m.unselectedColor);
-    m.menuSelection[2].setString("OPTION MODE");
-    m.menuSelection[2].setCharacterSize(charSize);
-    m.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 2) + yOffset);
+    m.menuSelection[1].setFont(m.font);
+    m.menuSelection[1].setFillColor(m.unselectedColor);
+    m.menuSelection[1].setString("OPTION MODE");
+    m.menuSelection[1].setCharacterSize(charSize);
+    m.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 2) + yOffset);
 
     //TERMINATE
-    m.menuSelection[3].setFont(m.font);
-    m.menuSelection[3].setFillColor(m.unselectedColor);
-    m.menuSelection[3].setString("TERMINATE");
-    m.menuSelection[3].setCharacterSize(charSize);
-    m.menuSelection[3].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 2.5) + yOffset);
-
+    m.menuSelection[2].setFont(m.font);
+    m.menuSelection[2].setFillColor(m.unselectedColor);
+    m.menuSelection[2].setString("TERMINATE");
+    m.menuSelection[2].setCharacterSize(charSize);
+    m.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 3) + yOffset);
     m.curButtonIndex = 0;
 }
 
@@ -743,20 +748,30 @@ void initOptions(MenuData &m, float width, float height) {
     // we use initMenu to copy data from the menu struct and reuse it in options.
     initMenu(m, width, height);
 
-    m.curMaxButtons = 3;
-    //CONTROLS
-    m.menuSelection[0].setString("CONTROLS");
+    m.curMaxButtons = 2;
     //AUDIO
-    m.menuSelection[1].setString("AUDIO");
+    m.menuSelection[0].setString("AUDIO");
     //BACK
-    m.menuSelection[2].setString("BACK");
+    m.menuSelection[1].setString("BACK");
+
+    m.curButtonIndex = 0;
+}
+
+void initAudio(MenuData &m, float width, float height, float &musicVolume) {
+    // we use initMenu to copy data from the menu struct and reuse it in options.
+    initMenu(m, width, height);
+
+    m.curMaxButtons = 2;
+    m.menuSelection[0].setString("MUSIC VOLUME : " + to_string((int)musicVolume));
+    //BACK
+    m.menuSelection[1].setString("BACK");
 
     m.curButtonIndex = 0;
 }
 
 //main is a placeholder for mainmenu, options is a placeholder for options menu.
 //this function handles switching between menus and the game, it also handles the menu interraction button (Z in this case) for both menus and the game.
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, Keyboard::Key interractionButton) {
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton) {
     if (event.type == Event::KeyPressed) {
         switch (main.curState)
         {
@@ -772,12 +787,13 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
                     titlesmusic.stop();
                     levelmusic.setBuffer(stagebuffer);
                     levelmusic.play();
+                    levelmusic.setLoop(true);
                     main.curState = GAME;
                 }
-                if (main.curButtonIndex == 2) {
+                if (main.curButtonIndex == 1) {
                     main.curState = OPTIONS;
                 }
-                if (main.curButtonIndex == 3) {
+                if (main.curButtonIndex == 2) {
                     window.close();
                 }
             }
@@ -791,20 +807,48 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
                 down(options);
             }
             if (event.key.code == interractionButton) {
-                if (options.curButtonIndex == 2) {
+                if (options.curButtonIndex == 1) {
                     main.curState = MAIN;
+                }
+            }
+            if (event.key.code == interractionButton) {
+                if (options.curButtonIndex == 0) {
+                    main.curState = AUDIO;
                 }
             }
             break;
 
-        case GAME:
+            case GAME:
             if (event.key.code == Keyboard::X) {
                 levelmusic.stop();
                 titlesmusic.setBuffer(titlebuffer);
                 titlesmusic.play();
+                titlesmusic.setLoop(true);
                 main.curState = MAIN;
             }
             break;
+        
+            case AUDIO:
+            if (event.key.code == Keyboard::Up) {
+                up(audioMenu);
+            }
+            if (event.key.code == Keyboard::Down) {
+                down(audioMenu);
+            }
+            if (event.key.code == interractionButton) {
+                    if (audioMenu.curButtonIndex == 1) {
+                        main.curState = OPTIONS;
+                    }
+            }
+            if(audioMenu.curButtonIndex == 0){
+                if(event.key.code == Keyboard::Left){
+                    volumeAdjustment(audioMenu, musicVolume, -1.f);
+                }
+                if(event.key.code == Keyboard::Right){
+                    volumeAdjustment(audioMenu, musicVolume, 1.f);
+                }
+            }
+            audioMenu.menuSelection[0].setString("MUSIC VOLUME : " + to_string((int)musicVolume));
 
         default:
             break;
@@ -1530,4 +1574,24 @@ void createBlock(int index, float x, float y, float width, float height) {
 }
 void carMovement(Sprite& car, float carSpeed, float dt){
     car.move(carSpeed * dt, 0);
+}
+
+void resetMegaman(player& playerst) {
+    playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
+    playerst.Vx = storedVx;
+    playerst.health = 19;
+    isPaused = false;
+    won = false;
+}
+
+void volumeAdjustment(MenuData& audioMenu, float &musicVolume, float increaseAmount) {
+        titlesmusic.setVolume(musicVolume);
+        levelmusic.setVolume(musicVolume);
+        musicVolume += increaseAmount;
+            if (musicVolume > 100.0f) {
+                musicVolume = 100.0f;
+            }
+            if (musicVolume < 0.0f) {
+                musicVolume = 0.0f;
+            }
 }

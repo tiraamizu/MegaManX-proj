@@ -23,10 +23,12 @@ enum GameState { MAIN, OPTIONS, GAME };
 SoundBuffer buffer;
 SoundBuffer titlebuffer;
 SoundBuffer stagebuffer;
+SoundBuffer winbuffer;
 Sound shoot;
 Sound titlesmusic;
 Sound levelmusic;
-
+Sound win;
+bool winsound = true;
 //~~~~~~~~~~~~~~~~~~~~Main Window Resolution~~~~~~~~~~~~~~~~~~~~~~~~~~
 const float windowWidth = 640;
 const float windowHeight = 480;
@@ -78,7 +80,7 @@ struct player
     Texture healthbar_text;
     RectangleShape healthbar;
     Vector2f Pos_Tracker; 
-    float Vx = 300.f;
+    float Vx = 2300.f;
     float Vy = 0.0f;
     float invTimer = 1.0f;
     float death_timer=5.0f;
@@ -623,6 +625,10 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
             cout<<"ERR: stagemusic.wav not found";
             return false;
             }
+    if(!winbuffer.loadFromFile("sounds/win.wav")){
+            cout<<"ERR: win.wav not found";
+            return false;
+            }
     if (!winobject.win.loadFromFile("textures/wingem.png")) {
     cout << "ERROR: Could not find textures/wingem.png" << endl;
         return false;
@@ -799,7 +805,7 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 
         case GAME:
             if (event.key.code == Keyboard::X) {
-                levelmusic.stop();
+                levelmusic.pause();
                 titlesmusic.setBuffer(titlebuffer);
                 titlesmusic.play();
                 main.curState = MAIN;
@@ -1273,6 +1279,12 @@ void winIntresection(winobj& winobject, RenderWindow& window,player &playerst, b
     if(playerst.megamanSpr.getGlobalBounds().intersects(winobject.winRect.getGlobalBounds())){
         isPaused = true;
         won = true;
+        if(winsound){
+            levelmusic.stop();
+            win.setBuffer(winbuffer);
+            win.play();
+            winsound = false;
+        }
     }
 }
 

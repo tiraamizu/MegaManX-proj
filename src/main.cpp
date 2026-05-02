@@ -17,6 +17,8 @@ const float ratio_health=3.84;
 const float MegaSpawnX = 500.f;
 const float MegaSpawnY = 100.f;
 float musicVolume = 50.f;
+bool isPaused = false; 
+bool won = false;
 
 enum GameState { MAIN, OPTIONS, GAME, AUDIO};
 
@@ -216,7 +218,6 @@ void down(MenuData &m);
 void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton);
 void volumeAdjustment(MenuData& audioMenu, float &musicVolume, float increaseAmount);
 bool resourcesCheck(MenuData &m,winobj &winobject);
-void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
@@ -267,8 +268,6 @@ void deathHandler(player& playerst, float &dt);
 void death_timer(player& playerst,float &dt);
 void damage (player& playerst);
 void heal (player& playerst);
-bool isPaused = false; 
-bool won = false;
 void health_blockout(player& playerst,RectangleShape& blackout);
 float storedVx = playerst.Vx; // for death functions
 
@@ -278,9 +277,10 @@ float storedVx = playerst.Vx; // for death functions
 void createBlock(int index, float x, float y, float width, float height);
 View aspectRatio(View view, float windowWidth, float windowHeight);
 void carMovement(Sprite& car, float carSpeed, float dt);
+void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
-
-
+// ## Misc functions
+void resetMegaman(player& playerst);
 
 
 
@@ -585,11 +585,7 @@ int main()
             }
             if (event.key.code == Keyboard::C) 
             {
-                playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
-                playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
-                isPaused = false;
-                won = false;
-                playerst.health = 19;
+                resetMegaman(playerst);
             } //debugging
 
             if(isPaused && !won){
@@ -828,6 +824,7 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 
             case GAME:
             if (event.key.code == Keyboard::X) {
+                resetMegaman(playerst);
                 levelmusic.stop();
                 titlesmusic.setBuffer(titlebuffer);
                 titlesmusic.play();
@@ -1597,11 +1594,13 @@ void resetMegaman(player& playerst) {
     playerst.health = 19;
     isPaused = false;
     won = false;
+    winsound = true;
 }
 
 void volumeAdjustment(MenuData& audioMenu, float &musicVolume, float increaseAmount) {
         titlesmusic.setVolume(musicVolume);
         levelmusic.setVolume(musicVolume);
+        win.setVolume(musicVolume);
         musicVolume += increaseAmount;
             if (musicVolume > 100.0f) {
                 musicVolume = 100.0f;

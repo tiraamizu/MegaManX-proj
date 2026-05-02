@@ -17,7 +17,7 @@ const float ratio_health=3.84;
 const float MegaSpawnX = 500.f;
 const float MegaSpawnY = 100.f;
 
-enum GameState { MAIN, OPTIONS, GAME };
+enum GameState { MAIN, OPTIONS, GAME, AUDIO};
 
 //SOUND DECLARATIONS
 SoundBuffer buffer;
@@ -199,10 +199,11 @@ int winY=465;
 //## Menu declaration functions (for main menu and options menu)
 void initMenu(MenuData &m, float width, float height);
 void initOptions(MenuData &m, float width, float height);
+void initAudio(MenuData &m, float width, float height);
 void drawMenuSelection(MenuData &m, RenderWindow &window);
 void up(MenuData &m);
 void down(MenuData &m);
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, Keyboard::Key interractionButton);
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton);
 bool resourcesCheck(MenuData &m,winobj &winobject);
 void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
@@ -291,14 +292,16 @@ int main()
 
     MenuData mainMenu;
     MenuData optionsMenu;
+    MenuData audioMenu;
 
-    if (!resourcesCheck(mainMenu,winobject) || !resourcesCheck(optionsMenu,winobject)) {
-        return 0;
+    if (!resourcesCheck(mainMenu,winobject) || !resourcesCheck(optionsMenu,winobject) || !resourcesCheck(audioMenu,winobject)) {
+        cout<< "Error loading resources. Please check the file paths and ensure all resources are available." << endl;
         //crashes program to stop messages (in resourcesCheck) from looping if logo is not found
     };
 
     initMenu(mainMenu, (float)window.getSize().x, (float)window.getSize().y); //initializes menu in 1st argument, 2nd and 3rd arguments are used for calculations regarding positions of menu items.
     initOptions(optionsMenu, (float)window.getSize().x, (float)window.getSize().y); //same as initMenu but for options menu.
+    initAudio(audioMenu, (float)window.getSize().x, (float)window.getSize().y); //same as initMenu but for audio menu.
 
     float dt; // delta time and clock for the whole game loop
     Clock clock;
@@ -368,7 +371,9 @@ int main()
             if (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape)
             {
                 isPaused = !isPaused;
-                if (!isPaused) clock.restart();
+                if (!isPaused) {
+                    clock.restart();
+                }
             }
 
             if (!isPaused && mainMenu.curState == GAME)
@@ -415,7 +420,7 @@ int main()
                             }
                             
                             windowmag[i].bulletSpr.setPosition(spawnPos);
-                            windowmag[i].bulletSpr.setScale(windowmag[i].direction, 1.0f); // Reverted scale to 1.0
+                            windowmag[i].bulletSpr.setScale(2.0f * windowmag[i].direction, 2.0f);
                             break;
                             // this is the most IMPORTANT line here i hope you know why:D
                             //look if this break wasn't here because this loop must on;y trigger once it found the 
@@ -427,7 +432,7 @@ int main()
                     }
                 }
             }
-            menuSwitchHandler(window, event, mainMenu, optionsMenu, interractionButton);
+            menuSwitchHandler(window, event, mainMenu, optionsMenu, audioMenu, interractionButton);
         }
 
         window.clear();
@@ -446,8 +451,14 @@ int main()
             drawMenuSelection(optionsMenu, window);
             break;
 
+        case AUDIO:
+            drawMenuSelection(audioMenu, window);
+            break;
+
         case GAME:
         {
+
+            //Game logic stuff section
             if (!isPaused)
             {
                 inputhandler(playerst, dt); 
@@ -519,6 +530,8 @@ int main()
                 }
             }
 
+            //Rendering section
+
             window.setView(camera);
             window.draw(map1.backgroundSpr[0]);
             window.draw(map1.mapSpr);
@@ -564,23 +577,17 @@ int main()
             window.draw(playerst.healthbar);
             window.draw(blackout);
 
-            if(isPaused)
-            {
-                Text pausedText("PAUSED", mainMenu.font, 50);
-                pausedText.setFillColor(Color::Red);
-                pausedText.setOrigin(pausedText.getGlobalBounds().width / 2, pausedText.getGlobalBounds().height / 2);
-                pausedText.setPosition(window.getView().getCenter().x, window.getView().getCenter().y);
-                window.draw(pausedText);
-            }
-
             if (event.key.code == Keyboard::X) 
             {
                 mainMenu.curState = MAIN;
             }
             if (event.key.code == Keyboard::C) 
             {
-                playerst.megamanSpr.setPosition(windowWidth/2, windowHeight/2);
+                playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
                 playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
+                isPaused = false;
+                won = false;
+                playerst.health = 19;
             } //debugging
 
             if(isPaused && !won){
@@ -591,18 +598,12 @@ int main()
             }
              if(isPaused && won){
                 Text winText("WIN", mainMenu.font, 50);
-                winText.setFillColor(Color::Red);
+                winText.setFillColor(Color::Green);
                 winText.setPosition(window.getView().getCenter().x - winText.getGlobalBounds().width / 2, window.getView().getCenter().y - winText.getGlobalBounds().height / 2);
                 window.draw(winText);
             }
             break;
         }
-            if(isPaused){
-                Text pausedTxt("PAUSED", mainMenu.font, 50);
-                pausedTxt.setFillColor(Color::White);
-                pausedTxt.setPosition(window.getView().getCenter().x - pausedTxt.getGlobalBounds().width / 2, window.getView().getCenter().y - 	pausedTxt.getGlobalBounds().height / 2); // Center the text on the screen
-                window.draw(pausedTxt);
-            }
 
         default:
             mainMenu.curState = MAIN;
@@ -689,38 +690,31 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
 }
 //Initializes main menu (note: we pass width and height by value bc we are using them for a calculation, no need to mod them.)
 void initMenu(MenuData &m, float width, float height) {
-                titlesmusic.setBuffer(titlebuffer);
-            titlesmusic.play();
-    m.curMaxButtons = 4;
+    titlesmusic.setBuffer(titlebuffer);
+    titlesmusic.play();
+    titlesmusic.setLoop(true);
+    m.curMaxButtons = 3;
 
     //GAME START
     m.menuSelection[0].setFont(m.font);
     m.menuSelection[0].setFillColor(m.selectedColor);
     m.menuSelection[0].setString("GAME START");
     m.menuSelection[0].setCharacterSize(charSize);
-    m.menuSelection[0].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1) + yOffset);
-
-    //PASS WORD
-    m.menuSelection[1].setFont(m.font);
-    m.menuSelection[1].setFillColor(m.unselectedColor);
-    m.menuSelection[1].setString("PASS WORD");
-    m.menuSelection[1].setCharacterSize(charSize);
-    m.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 1.5) + yOffset);
+    m.menuSelection[0].setPosition(((width / 2)) + xOffset, (height / (MAX_ITEM_NO + 10) * 1) + yOffset);
 
     //OPTION MODE
-    m.menuSelection[2].setFont(m.font);
-    m.menuSelection[2].setFillColor(m.unselectedColor);
-    m.menuSelection[2].setString("OPTION MODE");
-    m.menuSelection[2].setCharacterSize(charSize);
-    m.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 2) + yOffset);
+    m.menuSelection[1].setFont(m.font);
+    m.menuSelection[1].setFillColor(m.unselectedColor);
+    m.menuSelection[1].setString("OPTION MODE");
+    m.menuSelection[1].setCharacterSize(charSize);
+    m.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 2) + yOffset);
 
     //TERMINATE
-    m.menuSelection[3].setFont(m.font);
-    m.menuSelection[3].setFillColor(m.unselectedColor);
-    m.menuSelection[3].setString("TERMINATE");
-    m.menuSelection[3].setCharacterSize(charSize);
-    m.menuSelection[3].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 1) * 2.5) + yOffset);
-
+    m.menuSelection[2].setFont(m.font);
+    m.menuSelection[2].setFillColor(m.unselectedColor);
+    m.menuSelection[2].setString("TERMINATE");
+    m.menuSelection[2].setCharacterSize(charSize);
+    m.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 3) + yOffset);
     m.curButtonIndex = 0;
 }
 
@@ -756,20 +750,32 @@ void initOptions(MenuData &m, float width, float height) {
     // we use initMenu to copy data from the menu struct and reuse it in options.
     initMenu(m, width, height);
 
-    m.curMaxButtons = 3;
-    //CONTROLS
-    m.menuSelection[0].setString("CONTROLS");
+    m.curMaxButtons = 2;
     //AUDIO
-    m.menuSelection[1].setString("AUDIO");
+    m.menuSelection[0].setString("AUDIO");
     //BACK
-    m.menuSelection[2].setString("BACK");
+    m.menuSelection[1].setString("BACK");
+
+    m.curButtonIndex = 0;
+}
+
+void initAudio(MenuData &m, float width, float height) {
+    // we use initMenu to copy data from the menu struct and reuse it in options.
+    initMenu(m, width, height);
+
+    m.curMaxButtons = 2;
+    //MUSIC VOLUME
+    m.menuSelection[0].setString("MUSIC VOLUME");
+    //SOUND EFFECTS VOLUME
+    //BACK
+    m.menuSelection[1].setString("BACK");
 
     m.curButtonIndex = 0;
 }
 
 //main is a placeholder for mainmenu, options is a placeholder for options menu.
 //this function handles switching between menus and the game, it also handles the menu interraction button (Z in this case) for both menus and the game.
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, Keyboard::Key interractionButton) {
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton) {
     if (event.type == Event::KeyPressed) {
         switch (main.curState)
         {
@@ -785,12 +791,13 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
                     titlesmusic.stop();
                     levelmusic.setBuffer(stagebuffer);
                     levelmusic.play();
+                    levelmusic.setLoop(true);
                     main.curState = GAME;
                 }
-                if (main.curButtonIndex == 2) {
+                if (main.curButtonIndex == 1) {
                     main.curState = OPTIONS;
                 }
-                if (main.curButtonIndex == 3) {
+                if (main.curButtonIndex == 2) {
                     window.close();
                 }
             }
@@ -804,8 +811,13 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
                 down(options);
             }
             if (event.key.code == interractionButton) {
-                if (options.curButtonIndex == 2) {
+                if (options.curButtonIndex == 1) {
                     main.curState = MAIN;
+                }
+            }
+            if (event.key.code == interractionButton) {
+                if (options.curButtonIndex == 0) {
+                    main.curState = AUDIO;
                 }
             }
             break;
@@ -815,9 +827,23 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
                 levelmusic.stop();
                 titlesmusic.setBuffer(titlebuffer);
                 titlesmusic.play();
+                titlesmusic.setLoop(true);
                 main.curState = MAIN;
             }
             break;
+        
+            case AUDIO:
+            if (event.key.code == Keyboard::Up) {
+                up(audioMenu);
+            }
+            if (event.key.code == Keyboard::Down) {
+                down(audioMenu);
+            }
+                if (event.key.code == interractionButton) {
+                    if (audioMenu.curButtonIndex == 1) {
+                        main.curState = OPTIONS;
+                    }
+                }
 
         default:
             break;
@@ -1498,4 +1524,12 @@ void carMovement(Sprite& car, float carSpeed, float dt){
 void flicker() {
     auto curr = playerst.megamanSpr.getColor();
     playerst.megamanSpr.setColor(Color(255,255,255,(130+(curr.a%255))));
+}
+
+void resetMegaman(player& playerst) {
+    playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
+    playerst.Vx = storedVx;
+    playerst.health = 19;
+    isPaused = false;
+    won = false;
 }

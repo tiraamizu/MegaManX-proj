@@ -17,6 +17,7 @@ const float ratio_health=3.84;
 const float MegaSpawnX = 500.f;
 const float MegaSpawnY = 100.f;
 float musicVolume = 50.f;
+int enemyKilled[4] = {0}; // Enemies needed to kill to win the game
 
 enum GameState { MAIN, OPTIONS, GAME, AUDIO};
 
@@ -144,6 +145,7 @@ struct enemy2
     int framewidth = 36; // each frame height and width don't ask how i calculated it 
     int frameheight = 35;
     int enemy2Index = 0;
+    int hp = 10;
     float invTimer = 0.25f;
     float timer= 0.0f;
     float frameduration = 0.1f;
@@ -263,6 +265,7 @@ void handleIntersection(float &dt);
 void initwinobject(winobj& winobject,RenderWindow& window);
 void winIntresection(winobj& winobject, RenderWindow& window,player &playerst, bool &won, bool &isPaused);
 void Gravity(player& playerst, float &dt);
+bool checkWin();
 
 // ## health and damage 
 void deathHandler(player& playerst, float &dt);
@@ -478,30 +481,18 @@ int main()
                 handleIntersection(dt);
                 for(int i = 0; i < numEnemy1; i++)//call the enemy1 function in a loop for both enemies
                 {
+                    if (arrEnemy1[i].alive == false) arrEnemy1[i].enemySpr.setPosition(200000,200000);
                     arrEnemy1[i].hitbox.setPosition(arrEnemy1[i].enemySpr.getPosition());
                     enemyAnimation(arrEnemy1[i] , dt);
                     enemy1Shooting(arrEnemy1Bullet, playerst, dt , arrEnemy1[i]);
-                    /*
-                    if(death )
-                    {                                                           
-                        arrEnemy1[i].alive = false;
-                        arrEnemy1[i].enemySpr.setPosition(200000,200000);
-                    }*/
                 }
                 
                 for (int i = 0; i < numEnemy2; i++) 
                 { 
+                    if (arrEnemy2[i].alive == false) arrEnemy2[i].enemy2Spr.setPosition(200000,200000);
                     arrEnemy2[i].hitbox.setPosition(arrEnemy2[i].enemy2Spr.getPosition());
                     enemy2Animation(arrEnemy2[i],dt);
                     enemy2Detection(arrEnemy2[i],playerst , dt);
-
-                    
-                    /*
-                    if(death )
-                    {                                                                               
-                        arrEnemy2[i].alive = false;
-                        arrEnemy2[i].enemy2Spr.setPosition(200000,200000);
-                    }*/
                 }
 
                 bool IsFiring = playerBulletUpdate(windowmag, playerst, dt, window);
@@ -944,9 +935,9 @@ void enemy2Status(enemy2& arrEnemy2, float xpos)
     arrEnemy2.arrEnemy2Texture.loadFromFile("textures\\enemyr2(36x34).png");
     arrEnemy2.enemy2Spr.setTexture(arrEnemy2.arrEnemy2Texture); //assigning the texture to the sprite so that we can use it in the game loop
     arrEnemy2.enemy2Spr.setOrigin(arrEnemy2.framewidth/ 2.0f, arrEnemy2.frameheight / 2.0f);	
-    arrEnemy2.enemy2Spr.setScale(4.0f, 4.0f);  
-    arrEnemy2.hitbox.setSize(Vector2f(arrEnemy2.framewidth * 4.f, arrEnemy2.frameheight * 4.f));
-    arrEnemy2.hitbox.setOrigin(arrEnemy2.framewidth * 2.f, arrEnemy2.frameheight * 2.f);
+    arrEnemy2.enemy2Spr.setScale(2.0f, 2.0f);  
+    arrEnemy2.hitbox.setSize(Vector2f(arrEnemy2.framewidth * 1.f, arrEnemy2.frameheight * 1.f));
+    arrEnemy2.hitbox.setOrigin(arrEnemy2.framewidth * 0.5f, arrEnemy2.frameheight * 0.5f);
     arrEnemy2.hitbox.setPosition(xpos, 247.f);
     arrEnemy2.hitbox.setFillColor(Color::Transparent);
     arrEnemy2.hitbox.setOutlineColor(Color::Red);    // optional: see it while debugging
@@ -1302,7 +1293,7 @@ void enemy2Detection(enemy2& arrEnemy2, player& playerst ,float dt)
     {
         arrEnemy2.isActive = true;
 
-        arrEnemy2.enemy2Spr.move(arrEnemy2.speed * dt, 0);
+        if (arrEnemy2.touchesground) arrEnemy2.enemy2Spr.move(arrEnemy2.speed * dt, 0);
         arrEnemy2.hitbox.setPosition(arrEnemy2.enemy2Spr.getPosition());
     }
     else
@@ -1331,33 +1322,6 @@ void inputhandler(player& playerst, float dt )
 
 }
 
-
-// ## detections and intersections
-void Gravity(player& playerst, float &dt)
-{            
-  playerst.megamanSpr.move(0, playerst.Vy *dt);
-  if (playerst.issliding) {
-    playerst.Vy += gravity*0.1*dt;
-  }
-  else if(!playerst.touchesground) {
-    playerst.Vy += gravity * dt; //vf = vi + at for proper gravity that depends on dt to streamline everything.
-  }
-  else {
-    playerst.Vy = 0;
-  }
-
-
-  for (int i = 0; i < 2; i++) {
-    arrEnemy1[i].enemySpr.move(0, arrEnemy1[i].Vy *dt);
-    if(!arrEnemy1[i].touchesground) {
-        arrEnemy1[i].Vy += gravity * dt; //vf = vi + at for proper gravity that depends on dt to streamline everything.
-    }
-    else {
-        arrEnemy1[i].Vy = 0;
-    }
-  }
-};
-
 void playerhitbox_pos(player& playerst){
     playerst.hitbox.setPosition(playerst.Pos_Tracker);
 }
@@ -1376,11 +1340,33 @@ void winIntresection(winobj& winobject, RenderWindow& window,player &playerst, b
 }
 
 void initwinobject(winobj& winobject,RenderWindow& window){
-winobject.winRect.setPosition(winobject.winX,winobject.winY);
-winobject.winRect.setOrigin(winobject.width/2,winobject.height/2);
-winobject.winRect.setTexture(winobject.win);
-window.draw(winobject.winRect);
+    if (!checkWin()) return;
+    winobject.winRect.setPosition(winobject.winX,winobject.winY);
+    winobject.winRect.setOrigin(winobject.width/2,winobject.height/2);
+    winobject.winRect.setTexture(winobject.win);
+    window.draw(winobject.winRect);
 }
+
+// ## detections and intersections
+void Gravity(player& playerst, float &dt)
+{            
+  // vf = vi + at
+  // PLayer's
+  playerst.megamanSpr.move(0, playerst.Vy *dt);
+  if (playerst.issliding) playerst.Vy += gravity*0.1*dt;
+  else if(!playerst.touchesground)  playerst.Vy += gravity * dt;
+  else playerst.Vy = 0;
+
+  // Enemies'
+  for (int i = 0; i < 2; i++) {
+    arrEnemy1[i].enemySpr.move(0, arrEnemy1[i].Vy *dt);
+    arrEnemy2[i].enemy2Spr.move(0, arrEnemy2[i].Vy *dt);
+    if(!arrEnemy1[i].touchesground) arrEnemy1[i].Vy += gravity * dt;
+    else arrEnemy1[i].Vy = 0;
+    if (!arrEnemy2[i].touchesground) arrEnemy2[i].Vy += gravity*dt;
+    else arrEnemy2[i].Vy = 0;
+  }
+};
 
 void flickerPlayer() {
     auto curr = playerst.megamanSpr.getColor();
@@ -1394,7 +1380,7 @@ void flickerEnemy1(int ind) {
 
 void flickerEnemy2(int ind) {
     auto curr = arrEnemy2[ind].enemy2Spr.getColor();
-    arrEnemy2[ind].enemy2Spr.setColor(Color(255,100,100,(220+(curr.a%255))));
+    arrEnemy2[ind].enemy2Spr.setColor(Color(255,50,50,250));
 }
 
 
@@ -1415,7 +1401,7 @@ void checkPlayerInvincibility(player& playerst,float &dt){
 }
 
 void checkEnemy1Invincibility(int ind, float &dt) {
-    // If the enemy got hit, he gets an invincibility frame and a reddening animation for 0.5 second
+    // If the enemy got hit, he gets an invincibility frame and a reddening animation for 0.25 second
     if (arrEnemy1[ind].isInv==true && arrEnemy1[ind].invTimer>=0)
     {
         int dt100 = dt*10000000;
@@ -1431,6 +1417,19 @@ void checkEnemy1Invincibility(int ind, float &dt) {
 }
 
 void checkEnemy2Invincibility(int ind, float &dt) {
+    // If the enemy got hit, he gets an invincibility frame and a reddening animation for 0.25 second
+    if (arrEnemy2[ind].isInv==true && arrEnemy2[ind].invTimer>=0)
+    {
+        int dt100 = dt*10000000;
+        int inv100 = arrEnemy2[ind].invTimer*10000000;
+        if (dt100 && (inv100/dt100)%8 == 0) flickerEnemy2(ind);
+        arrEnemy2[ind].invTimer-=dt;
+    }
+    else{
+        arrEnemy2[ind].enemy2Spr.setColor(Color(255,255,255,255));
+        arrEnemy2[ind].isInv = false;
+        arrEnemy2[ind].invTimer = 0.25f;
+    }
 }
 
 int checkPlayerWallIntersection(int ind) {
@@ -1496,6 +1495,7 @@ void handlePlayerIntersection(float &dt) {
 void handleEnemy1Intersection(float &dt) {
   // Platfrom-Enemy
   for (int en = 0; en < 2; en++) {
+    arrEnemy1[en].touchesground = false;
     checkEnemy1Invincibility(en, dt);
     for(int i = 0; i < blocks ; i++)
     {
@@ -1511,6 +1511,10 @@ void handleEnemy1Intersection(float &dt) {
             if (!arrEnemy1[en].isInv) {
                 arrEnemy1[en].hp--;
                 arrEnemy1[en].isInv = 1;
+                if (arrEnemy1[en].hp == 0) {
+                    arrEnemy1[en].alive = false;
+                    enemyKilled[en] = 1;
+                }
             }
         }
     } 
@@ -1518,6 +1522,38 @@ void handleEnemy1Intersection(float &dt) {
 }
 
 void handleEnemy2Intersection(float &dt) {
+  // Platfrom-Enemy
+  for (int en = 0; en < 2; en++) {
+    checkEnemy2Invincibility(en, dt);
+    arrEnemy2[en].touchesground = false;
+    for(int i = 0; i < blocks ; i++)
+    {
+        if (arrEnemy2[en].hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+            // Ground-Enemy: Set enemy vy = 0
+            arrEnemy2[en].touchesground = true;
+        }
+    }
+
+    // Kill Enemy if off-map
+    if (arrEnemy2[en].enemy2Spr.getPosition().y >= windowHeight + 100) {
+        arrEnemy2[en].alive = false;
+        enemyKilled[en+2] = 1;
+    }
+
+    // Player's bullet-Enemy
+    for(int i = 0; i < 10; i++) { 
+        if (arrEnemy2[en].hitbox.getGlobalBounds().intersects(windowmag[i].bulletSpr.getGlobalBounds())) {
+            if (!arrEnemy2[en].isInv) {
+                arrEnemy2[en].hp--;
+                arrEnemy2[en].isInv = 1;
+                if (arrEnemy2[en].hp == 0) {
+                    arrEnemy2[en].alive = false;
+                    enemyKilled[en+2] = 1;
+                }
+            }
+        }
+    } 
+  }
 
 }
 
@@ -1525,6 +1561,11 @@ void handleIntersection(float &dt) {
     handlePlayerIntersection(dt);
     handleEnemy1Intersection(dt);
     handleEnemy2Intersection(dt);
+}
+
+bool checkWin() {
+    for (int i = 0; i < 4; i++) if (!enemyKilled[i]) return false;
+    return true;
 }
 
 // ## health and damage 

@@ -80,7 +80,7 @@ struct player
     Vector2f Pos_Tracker; 
     float Vx = 300.f;
     float Vy = 0.0f;
-    float inv_timer=1.0;
+    float invTimer = 1.0f;
     float death_timer=5.0f;
 	float runFrameDuration = 0.1f;
     float jumpFramrDuration = 0.12f;
@@ -100,7 +100,7 @@ struct player
     int health =19; //max hp is 19
     enum dir {NONE,LEFT,RIGHT};
     dir toucheswall = NONE; 
-    bool invincible=false;
+    bool isInv = false;
     bool moving = false;
     bool touchesground = false;
     bool issliding = false;
@@ -112,14 +112,17 @@ struct enemy1 {
     RectangleShape hitbox;
     Texture enemyTexture;
     Sprite enemySpr;
+    int hp = 10;
     int framewidth = 50; // each frame height and width don't ask how i calculated it 
 	int frameheight = 65;
     int eIndex = 0;
+    float invTimer = 0.25f;
     float detectionRange = 500.f;
     float timer= 0.0f;
     float frameduration = 0.15f;
     float Vy = 0.0f;
     bool isActive = false; // the range at which the enemy will detect the player and start moving towards him
+    bool isInv = false;
     bool alive = true;
     bool atFireFrame = false;
     bool goingForward = true; // ping-pong direction flag
@@ -136,10 +139,12 @@ struct enemy2
     int framewidth = 36; // each frame height and width don't ask how i calculated it 
     int frameheight = 35;
     int enemy2Index = 0;
+    float invTimer = 0.25f;
     float timer= 0.0f;
     float frameduration = 0.1f;
     float speed = -150.f;
     float Vy = 0.0f;
+    bool isInv = false;
     bool touchesground = false;
     bool alive = true;
     
@@ -244,16 +249,11 @@ void inputhandler(player& playerst, float dt );
 
 // ## detections and intersections
 void playerhitbox_pos(player& playerst);
-void check_invincibility(player& playerst,float &dt);
+void checkPlayerInvincibility(player& playerst,float &dt);
 void handleIntersection(float &dt);
 void initwinobject(winobj& winobject,RenderWindow& window);
 void winIntresection(winobj& winobject, RenderWindow& window,player &playerst, bool &won, bool &isPaused);
 void Gravity(player& playerst, float &dt);
-int checkPlayerWallIntersection(int ind);
-void handlePlayerIntersection(float &dt);
-void handleEnemy1Intersection(float &dt);
-void handlearrEnemy2Intersection(float &dt);
-void flicker();
 
 // ## health and damage 
 void deathHandler(player& playerst, float &dt);
@@ -285,8 +285,6 @@ int main()
     blackout.setSize(Vector2f(15, 1));
     blackout.setPosition(31.f, 141.f);
     
-    bullet windowmag[nbullets];
-
     RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
 
     MenuData mainMenu;
@@ -463,7 +461,6 @@ int main()
                 playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
                 playerhitbox_pos(playerst); //constnatly enemy1BulletUpdates hitbox to be on megaman
                 handleIntersection(dt);
-
                 for(int i = 0; i < numEnemy1; i++)
                 {
                     arrEnemy1[i].hitbox.setPosition(arrEnemy1[i].enemySpr.getPosition());
@@ -493,7 +490,6 @@ int main()
                 }
 
                 bool IsFiring = playerBulletUpdate(windowmag, playerst, dt, window);
-
                 if(!playerst.moving && !IsFiring && playerst.touchesground){
                     idleAnim(playerst, dt);
                 }
@@ -1269,20 +1265,7 @@ void Gravity(player& playerst, float &dt)
     }
   }
 };
-void check_invincibility(player& playerst,float &dt){
-    if (playerst.invincible==true &&playerst.inv_timer>=0)
-    {
-        int dt100 = dt*10000000;
-        int inv100 = playerst.inv_timer*10000000;
-        if (dt100 && (inv100/dt100)%4 == 0) flicker();
-        playerst.inv_timer-=dt;
-    }
-    else{
-        playerst.megamanSpr.setColor(Color(255,255,255,255));
-        playerst.invincible=false;
-        playerst.inv_timer=1.0f;
-    }
-}
+
 void playerhitbox_pos(player& playerst){
     playerst.hitbox.setPosition(playerst.Pos_Tracker);
 }
@@ -1292,17 +1275,65 @@ void winIntresection(winobj& winobject, RenderWindow& window,player &playerst, b
         won = true;
     }
 }
-void handleIntersection(float &dt) {
-    handlePlayerIntersection(dt);
-    handleEnemy1Intersection(dt);
-    handlearrEnemy2Intersection(dt);
-}
+
 void initwinobject(winobj& winobject,RenderWindow& window){
 winobject.winRect.setPosition(winobject.winX,winobject.winY);
 winobject.winRect.setOrigin(winobject.width/2,winobject.height/2);
 winobject.winRect.setTexture(winobject.win);
 window.draw(winobject.winRect);
 }
+
+void flickerPlayer() {
+    auto curr = playerst.megamanSpr.getColor();
+    playerst.megamanSpr.setColor(Color(255,255,255,(130+(curr.a%255))));
+}
+
+void flickerEnemy1(int ind) {
+    auto curr = arrEnemy1[ind].enemySpr.getColor();
+    arrEnemy1[ind].enemySpr.setColor(Color(255,50,50,250));
+}
+
+void flickerEnemy2(int ind) {
+    auto curr = arrEnemy2[ind].enemy2Spr.getColor();
+    arrEnemy2[ind].enemy2Spr.setColor(Color(255,100,100,(220+(curr.a%255))));
+}
+
+
+void checkPlayerInvincibility(player& playerst,float &dt){
+    // If the player got hit, he gets an invincibility frame and a flickering animation for 1 second
+    if (playerst.isInv==true &&playerst.invTimer>=0)
+    {
+        int dt100 = dt*10000000;
+        int inv100 = playerst.invTimer*10000000;
+        if (dt100 && (inv100/dt100)%4 == 0) flickerPlayer();
+        playerst.invTimer-=dt;
+    }
+    else{
+        playerst.megamanSpr.setColor(Color(255,255,255,255));
+        playerst.isInv=false;
+        playerst.invTimer=1.0f;
+    }
+}
+
+void checkEnemy1Invincibility(int ind, float &dt) {
+    // If the enemy got hit, he gets an invincibility frame and a reddening animation for 0.5 second
+    if (arrEnemy1[ind].isInv==true && arrEnemy1[ind].invTimer>=0)
+    {
+        int dt100 = dt*10000000;
+        int inv100 = arrEnemy1[ind].invTimer*10000000;
+        if (dt100 && (inv100/dt100)%8 == 0) flickerEnemy1(ind);
+        arrEnemy1[ind].invTimer-=dt;
+    }
+    else{
+        arrEnemy1[ind].enemySpr.setColor(Color(255,255,255,255));
+        arrEnemy1[ind].isInv = false;
+        arrEnemy1[ind].invTimer = 0.25f;
+    }
+}
+
+void checkEnemy2Invincibility(int ind, float &dt) {
+}
+
 int checkPlayerWallIntersection(int ind) {
   // Checks if the player are on the same x-axis of the ground, then they intersect vertically. Otherwise, they intersect horizontally
   // 1 = Player's left touches the wall, 2 = Player's right touches the wall
@@ -1312,11 +1343,12 @@ int checkPlayerWallIntersection(int ind) {
   if (start-playerst.Pos_Tracker.x > 0.5*playerst.framewidth) return 2;
   return 0;
 }
+
 void handlePlayerIntersection(float &dt) {
   playerst.touchesground = false;
   playerst.toucheswall = player::NONE;
   playerst.issliding = false;
-  check_invincibility(playerst, dt);
+  checkPlayerInvincibility(playerst, dt);
 
   // Platfrom-Player
   for(int i = 0 ; i < blocks ; i++)
@@ -1345,49 +1377,63 @@ void handlePlayerIntersection(float &dt) {
   // With Enemy 1
   for (int i = 0; i < 2; i++) {
     if (playerst.hitbox.getGlobalBounds().intersects(arrEnemy1[i].hitbox.getGlobalBounds()) || playerst.hitbox.getGlobalBounds().intersects(arrEnemy1Bullet.enemyBulletSpr.getGlobalBounds())) {
-        if (!playerst.invincible) {
+        if (!playerst.isInv) {
             playerst.health--;
-            playerst.invincible = true;
+            playerst.isInv = true;
         }
     }
   }
   // With Enemy 2
   for (int i = 0; i < 2; i++) {
     if (playerst.hitbox.getGlobalBounds().intersects(arrEnemy2[i].hitbox.getGlobalBounds())) {
-        if (!playerst.invincible) {
+        if (!playerst.isInv) {
             playerst.health--;
-            playerst.invincible = true;
+            playerst.isInv = true;
         }
     }
   }
 }
+
 void handleEnemy1Intersection(float &dt) {
   // Platfrom-Enemy
-  for (int en = -1; en < 2; en++) {
-    for(int i = -1 ; i < blocks ; i++)
+  for (int en = 0; en < 2; en++) {
+    checkEnemy1Invincibility(en, dt);
+    for(int i = 0; i < blocks ; i++)
     {
-        if (arrEnemy1[en].hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) 
-        {
+        if (arrEnemy1[en].hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
             // Ground-Enemy: Set enemy vy = 0
             arrEnemy1[en].touchesground = true;
         }
     }
+
+    // Player's bullet-Enemy
+    for(int i = 0; i < 10; i++) { 
+        if (arrEnemy1[en].hitbox.getGlobalBounds().intersects(windowmag[i].bulletSpr.getGlobalBounds())) {
+            if (!arrEnemy1[en].isInv) {
+                arrEnemy1[en].hp--;
+                arrEnemy1[en].isInv = 1;
+            }
+        }
+    } 
   }
 }
 
-void handlearrEnemy2Intersection(float &dt) {
+void handleEnemy2Intersection(float &dt) {
 
 }
 
-
+void handleIntersection(float &dt) {
+    handlePlayerIntersection(dt);
+    handleEnemy1Intersection(dt);
+    handleEnemy2Intersection(dt);
+}
 
 // ## health and damage 
 void death_timer(player& playerst,float &dt){
     if (playerst.health>=0 &&playerst.death_timer>=0)
     {
         playerst.death_timer=playerst.death_timer-dt;
-        playerst.Vx = 0.f;
-        
+        playerst.Vx = 0.f;        
     }
     else{
         playerst.death_timer=5.0f;
@@ -1484,9 +1530,4 @@ void createBlock(int index, float x, float y, float width, float height) {
 }
 void carMovement(Sprite& car, float carSpeed, float dt){
     car.move(carSpeed * dt, 0);
-}
-
-void flicker() {
-    auto curr = playerst.megamanSpr.getColor();
-    playerst.megamanSpr.setColor(Color(255,255,255,(130+(curr.a%255))));
 }

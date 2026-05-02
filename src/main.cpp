@@ -916,8 +916,6 @@ void enemyStates(enemy1& arrEnemy1 ,float &xpos, float &ypos)
     
     arrEnemy1.hitbox.setPosition(xpos, 170.f);
     arrEnemy1.hitbox.setFillColor(Color::Transparent);
-    arrEnemy1.hitbox.setOutlineColor(Color::Red);  //testing 
-    arrEnemy1.hitbox.setOutlineThickness(1.f);     //testing
 }
 void enemyBulletStates(enemy1bullet& arrEnemy1Bullet)
 {
@@ -940,9 +938,6 @@ void enemy2Status(enemy2& arrEnemy2, float xpos)
     arrEnemy2.hitbox.setOrigin(arrEnemy2.framewidth * 0.5f, arrEnemy2.frameheight * 0.5f);
     arrEnemy2.hitbox.setPosition(xpos, 247.f);
     arrEnemy2.hitbox.setFillColor(Color::Transparent);
-    arrEnemy2.hitbox.setOutlineColor(Color::Red);    // optional: see it while debugging
-    arrEnemy2.hitbox.setOutlineThickness(1.f);
-
 }
 
 // ## Animation functions

@@ -24,10 +24,14 @@ enum GameState { MAIN, OPTIONS, GAME, AUDIO};
 SoundBuffer buffer;
 SoundBuffer titlebuffer;
 SoundBuffer stagebuffer;
+SoundBuffer winbuffer;
+
+
 Sound shoot;
 Sound titlesmusic;
 Sound levelmusic;
-
+Sound win;
+bool winsound = true;
 //~~~~~~~~~~~~~~~~~~~~Main Window Resolution~~~~~~~~~~~~~~~~~~~~~~~~~~
 const float windowWidth = 640;
 const float windowHeight = 480;
@@ -633,6 +637,10 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
             }
     if(!stagebuffer.loadFromFile("sounds/stagemusic.wav")){
             cout<<"ERR: stagemusic.wav not found";
+            return false;
+            }
+    if(!winbuffer.loadFromFile("sounds/win.wav")){
+            cout<<"ERR: win.wav not found";
             return false;
             }
     if (!winobject.win.loadFromFile("textures/wingem.png")) {
@@ -1317,6 +1325,13 @@ void winIntresection(winobj& winobject, RenderWindow& window,player &playerst, b
     if(playerst.megamanSpr.getGlobalBounds().intersects(winobject.winRect.getGlobalBounds())){
         isPaused = true;
         won = true;
+        
+        if(winsound){
+            levelmusic.stop();
+            win.setBuffer(winbuffer);
+            win.play();
+            winsound = false;
+        }
     }
 }
 

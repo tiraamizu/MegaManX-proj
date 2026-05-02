@@ -1,6 +1,8 @@
 # MegaManX Clone
 A clone for the original Mega Man X. This project is made using only structured programming principles and is intended to serve as a university's group project.
 
+**DISCLAIMER: This project was developed as part of a university's course group assignment. Certain design decisions, including the methodology and file structure, were determined by course requirements and constraints rather than by our preferred practices.** 
+
 ## Quick start
 
 ### Command line

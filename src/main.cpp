@@ -404,13 +404,13 @@ int main()
                 // cout << playerst.health << ' ' << playerst.inv_timer << '\n';
                 inputhandler(playerst, dt); 
                 deathHandler(playerst, dt);
-                handleIntersection(dt);
                 Gravity(playerst, dt);
                 camBounds(70, 40, 40, 60);
                 carMovement(map1.car1Spr, -200.f, dt);
                 carMovement(map1.car2Spr, -200.f, dt);
                 playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
                 playerhitbox_pos(playerst); //constnatly updates hitbox to be on megaman
+                handleIntersection(dt);
 
                 for(int i = 0; i < n_denenmy; i++)
                 {
@@ -879,7 +879,7 @@ void check_invincibility(player& playerst,float &dt){
     {
         int dt100 = dt*10000000;
         int inv100 = playerst.inv_timer*10000000;
-        if (dt100 && (inv100/dt100)%4 == 0) {cout << "Im flickering" << '\n'; flicker();}
+        if (dt100 && (inv100/dt100)%4 == 0) flicker();
         playerst.inv_timer-=dt;
     }
     else{
@@ -1350,9 +1350,9 @@ void handlePlayerIntersection(float &dt) {
 }
 
 void handleEnemy1Intersection(float &dt) {
-  // Platfrom-Enemy
-  for (int en = -1; en < 2; en++) {
-    for(int i = -1 ; i < blocks ; i++)
+  for (int en = 0; en < 2; en++) {
+    // Platfrom-Enemy
+    for(int i = 0; i < blocks ; i++)
     {
         if (dEnemy[en].hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) 
         {
@@ -1360,7 +1360,10 @@ void handleEnemy1Intersection(float &dt) {
             dEnemy[en].touchesground = true;
         }
     }
+    // Player's Bullets-Enemy
+    
   }
+
 }
 
 void handleEnemy2Intersection(float &dt) {

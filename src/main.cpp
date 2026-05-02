@@ -456,13 +456,13 @@ int main()
             {
                 inputhandler(playerst, dt); 
                 deathHandler(playerst, dt);
-                handleIntersection(dt);
                 Gravity(playerst, dt);
                 camBounds(70, 40, 40, 60);
                 carMovement(map1.car1Spr, -200.f, dt);
                 carMovement(map1.car2Spr, -200.f, dt);
                 playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
                 playerhitbox_pos(playerst); //constnatly enemy1BulletUpdates hitbox to be on megaman
+                handleIntersection(dt);
 
                 for(int i = 0; i < numEnemy1; i++)
                 {
@@ -1274,7 +1274,7 @@ void check_invincibility(player& playerst,float &dt){
     {
         int dt100 = dt*10000000;
         int inv100 = playerst.inv_timer*10000000;
-        if (dt100 && (inv100/dt100)%4 == 0) {cout << "Im flickering" << '\n'; flicker();}
+        if (dt100 && (inv100/dt100)%4 == 0) flicker();
         playerst.inv_timer-=dt;
     }
     else{

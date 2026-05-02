@@ -149,10 +149,11 @@ struct enemy2
     float frameduration = 0.1f;
     float speed = -150.f;
     float Vy = 0.0f;
+    float detectionRange = 500.f;
     bool isInv = false;
     bool touchesground = false;
     bool alive = true;
-    
+    bool isActive = false;
 } arrEnemy2[numEnemy2];
 
 
@@ -241,6 +242,7 @@ void standFireAnim(player& playerst, float dt);
 void enemyAnimation(enemy1& arrEnemy1, float dt);
 void wallSlideAnim(player& playerst, float dt);
 void idleAnim(player& playerst, float dt);
+void enemy2Animation(enemy2& arrEnemy2, float dt);
 
 
 // ## bullet shooting and update
@@ -250,7 +252,7 @@ void enemy1BulletUpdate(player& playerst ,enemy1bullet& arrEnemy1Bullet , float 
 
 // ## enemies detection range
 void enemydetection(enemy1& arrEnemy1 , player& playerst);
-
+void enemy2Detection(enemy2& arrEnemy2, player& playerst ,float dr);
 // ## controls input
 void inputhandler(player& playerst, float dt );
 
@@ -319,13 +321,13 @@ int main()
     }
 
     for (int i = 0; i < numEnemy1; i++) {
-        float xpos = 1000.f + (i * 2000.f);
-        float ypos = 0;
+        float xpos = 2000.f + (i * 2600.f);
+        float ypos = 350;
         enemyStates(arrEnemy1[i], xpos, ypos);
     }
 
     for (int i = 0; i < numEnemy2; i++) {
-        float xpos = 1500.f + (i * 4000.f);
+        float xpos = 1300.f + (i * 1800.f);
         enemy2Status(arrEnemy2[i], xpos);
     }
 
@@ -474,32 +476,32 @@ int main()
                 playerst.Pos_Tracker=playerst.megamanSpr.getPosition();//tracks position of megaman
                 playerhitbox_pos(playerst); //constnatly enemy1BulletUpdates hitbox to be on megaman
                 handleIntersection(dt);
-                for(int i = 0; i < numEnemy1; i++)
+                for(int i = 0; i < numEnemy1; i++)//call the enemy1 function in a loop for both enemies
                 {
                     arrEnemy1[i].hitbox.setPosition(arrEnemy1[i].enemySpr.getPosition());
                     enemyAnimation(arrEnemy1[i] , dt);
                     enemy1Shooting(arrEnemy1Bullet, playerst, dt , arrEnemy1[i]);
+                    /*
+                    if(death )
+                    {                                                           
+                        arrEnemy1[i].alive = false;
+                        arrEnemy1[i].enemySpr.setPosition(200000,200000);
+                    }*/
                 }
-
+                
                 for (int i = 0; i < numEnemy2; i++) 
                 { 
-                    if(arrEnemy2[i].enemy2Spr.getPosition().x < playerst.megamanSpr.getPosition().x -windowWidth+240.f )
-                    {
-                        arrEnemy2[i].alive = false;
-                    }
+                    arrEnemy2[i].hitbox.setPosition(arrEnemy2[i].enemy2Spr.getPosition());
+                    enemy2Animation(arrEnemy2[i],dt);
+                    enemy2Detection(arrEnemy2[i],playerst , dt);
+
                     
-                    if (arrEnemy2[i].alive) 
-                    {
-                        arrEnemy2[i].timer += dt;
-                        if (arrEnemy2[i].timer >= arrEnemy2[i].frameduration)
-                        {
-                            arrEnemy2[i].timer = 0.0f;
-                            arrEnemy2[i].enemy2Index = (arrEnemy2[i].enemy2Index + 1) % 3;
-                            arrEnemy2[i].enemy2Spr.setTextureRect(IntRect(arrEnemy2[i].enemy2Index * arrEnemy2[i].framewidth, 0, arrEnemy2[i].framewidth, arrEnemy2[i].frameheight) );
-                        }
-                        arrEnemy2[i].enemy2Spr.move(arrEnemy2[i].speed*dt, 0);
-                        arrEnemy2[i].hitbox.setPosition(arrEnemy2[i].enemy2Spr.getPosition());
-                    }
+                    /*
+                    if(death )
+                    {                                                                               
+                        arrEnemy2[i].alive = false;
+                        arrEnemy2[i].enemy2Spr.setPosition(200000,200000);
+                    }*/
                 }
 
                 bool IsFiring = playerBulletUpdate(windowmag, playerst, dt, window);
@@ -545,8 +547,12 @@ int main()
 
             for(int i = 0; i < numEnemy1; i++)
             {
-                window.draw(arrEnemy1[i].enemySpr);
-                window.draw(arrEnemy1[i].hitbox);
+                if(arrEnemy1[i].alive)
+                {
+                    window.draw(arrEnemy1[i].enemySpr);
+                    window.draw(arrEnemy1[i].hitbox); 
+                    
+                }
             }
 
             if(arrEnemy1Bullet.isthere)
@@ -558,6 +564,7 @@ int main()
                 {
                     window.draw(arrEnemy2[i].enemy2Spr);
                     window.draw(arrEnemy2[i].hitbox); 
+                    
                 }
             }
 
@@ -1042,6 +1049,26 @@ void enemyAnimation(enemy1& arrEnemy1, float dt)
         
     }
 }
+void enemy2Animation(enemy2& arrEnemy2, float dt)
+{
+    if(arrEnemy2.isActive)
+    {
+        arrEnemy2.timer += dt;
+        if (arrEnemy2.timer >= arrEnemy2.frameduration)
+        {
+            arrEnemy2.timer = 0.0f;
+            arrEnemy2.enemy2Index++;
+            if(arrEnemy2.enemy2Index>=3)
+            {
+                arrEnemy2.enemy2Index = 0;
+            }
+            
+        }
+        arrEnemy2.enemy2Spr.setTextureRect(IntRect(arrEnemy2.enemy2Index * arrEnemy2.framewidth, 0, arrEnemy2.framewidth, arrEnemy2.frameheight) );
+
+
+    }
+}
 void runFireAnim(player& playerst , float dt)  
 {
     if(playerst.megamanSpr.getTexture() != &playerst.runFireTexture )
@@ -1158,7 +1185,6 @@ void wallSlideAnim(player& playerst, float dt)
     );
 }
 
-
 // ## bullet shooting and update
 void enemy1BulletUpdate(player& playerst ,enemy1bullet& arrEnemy1Bullet , float dt )
 {
@@ -1269,7 +1295,21 @@ void enemydetection(enemy1& arrEnemy1 , player& playerst)
     }
 
 }   
+void enemy2Detection(enemy2& arrEnemy2, player& playerst ,float dt)
+{
+    if (playerst.megamanSpr.getPosition().x < arrEnemy2.enemy2Spr.getPosition().x + arrEnemy2.detectionRange && playerst.megamanSpr.getPosition().x > arrEnemy2.enemy2Spr.getPosition().x - arrEnemy2.detectionRange)
+        
+    {
+        arrEnemy2.isActive = true;
 
+        arrEnemy2.enemy2Spr.move(arrEnemy2.speed * dt, 0);
+        arrEnemy2.hitbox.setPosition(arrEnemy2.enemy2Spr.getPosition());
+    }
+    else
+    {
+        arrEnemy2.isActive = false; // "Sleep" if player is too far away[cite: 1]
+    }
+}
 
 // ## controls input
 void inputhandler(player& playerst, float dt )

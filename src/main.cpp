@@ -48,7 +48,7 @@ struct map {
 Sprite mapSpr;
 Texture mapTexture;
 
-Sprite backgroundSpr[100];
+Sprite backgroundSpr;
 Texture backgroundTexture;
 
 Sprite lampSpr;
@@ -326,7 +326,7 @@ int main()
     blackout.setSize(Vector2f(15, 1));
     blackout.setPosition(31.f, 141.f);
     
-    RenderWindow window(VideoMode(windowWidth, windowHeight), "MMX prototype");
+    RenderWindow window(VideoMode(windowWidth, windowHeight), "MEGAMAN X");
 
     MenuData mainMenu;
     MenuData optionsMenu;
@@ -558,7 +558,7 @@ int main()
             //Rendering section
 
             window.setView(camera);
-            window.draw(map1.backgroundSpr[0]);
+            window.draw(map1.backgroundSpr);
             window.draw(map1.mapSpr);
             window.draw(map1.car1Spr);
             window.draw(map1.car2Spr);
@@ -702,12 +702,12 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
     map1.mapSpr.setPosition(200, 0);
     map1.mapSpr.setScale(2.0f, 2.0f);
 
-    map1.backgroundSpr[0].setTexture(map1.backgroundTexture);
+    map1.backgroundSpr.setTexture(map1.backgroundTexture);
     map1.backgroundTexture.setRepeated(true);
-    map1.backgroundSpr[0].setPosition(0, 42);
-    map1.backgroundSpr[0].setScale(2.0f, 2.0f);
-    map1.backgroundSpr[0].setOrigin(0, 0);
-    map1.backgroundSpr[0].setTextureRect(IntRect(0, 0, 15400, map1.backgroundTexture.getSize().y));
+    map1.backgroundSpr.setPosition(0, 42);
+    map1.backgroundSpr.setScale(2.0f, 2.0f);
+    map1.backgroundSpr.setOrigin(0, 0);
+    map1.backgroundSpr.setTextureRect(IntRect(0, 0, 15400, map1.backgroundTexture.getSize().y));
 
     map1.car1Spr.setTexture(map1.car1);
     map1.car1Spr.setPosition(500, 230);

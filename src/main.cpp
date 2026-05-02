@@ -71,7 +71,7 @@ struct MenuData {
     Texture Logo, XLogo;
     Sprite logoSprite, XLogoSprite;
     GameState curState = MAIN;
-};
+} mainMenu, optionsMenu, audioMenu;
 
 View camera(FloatRect(0, 0, windowWidth, windowHeight));
 View menuCamera(FloatRect(0, 0, windowWidth, windowHeight));
@@ -238,15 +238,15 @@ int winY=315;
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
 //## Menu declaration functions (for main menu and options menu)
-void initMenu(MenuData &m, float width, float height);
-void initOptions(MenuData &m, float width, float height);
-void initAudio(MenuData &m, float width, float height, float &musicVolume);
-void drawMenuSelection(MenuData &m, RenderWindow &window);
-void up(MenuData &m);
-void down(MenuData &m);
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton);
+void initMenu(MenuData &mainMenu, float width, float height);
+void initOptions(MenuData &optionsMenu, float width, float height);
+void initAudio(MenuData &audioMenu, float width, float height, float &musicVolume);
+void drawMenuSelection(MenuData &mainMenu, RenderWindow &window);
+void up(MenuData &mainMenu);
+void down(MenuData &mainMenu);
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &mainMenu, MenuData &optionsMenu, MenuData &audioMenu, Keyboard::Key interractionButton);
 void volumeAdjustment(MenuData& audioMenu, float &musicVolume, float increaseAmount);
-bool resourcesCheck(MenuData &m,winobj &winobject);
+bool resourcesCheck(MenuData &mainMenu,winobj &winobject);
 void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
@@ -258,9 +258,9 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 // ## States functions
 void playerstats(player& playerst);
 void playerBulletStates(bullet& prj);
-void enemyStates(enemy1& arrEnemy1,float &xpos, float &ypos);
+void enemyStates(enemy1& arrEnemy1,float xpos, float ypos);
 void enemyBulletStates(enemy1bullet& arrEnemy1Bullet);
-void enemy2Status(enemy2& arrEnemy2, float xpos);
+void enemy2Status(enemy2& arrEnemy2, float xpos, float ypos);
 void enemy3States(enemy3& arrEnemy3, float xpos, float ypos);
 void enemy3BulletStates(enemy3bullet& arrEnemy3Bullet);
 void enemy3Animation(enemy3& arrEnemy3, player& playerst, float &dt);
@@ -316,6 +316,9 @@ void createBlock(int index, float x, float y, float width, float height);
 View aspectRatio(View view, float windowWidth, float windowHeight);
 void carMovement(Sprite& car, float carSpeed, float dt);
 
+// ## reset function
+void resetMegaman(player& playerst);
+
 
 
 
@@ -363,13 +366,14 @@ int main()
 
     for (int i = 0; i < numEnemy2; i++) {
         float xpos = 1300.f + (i * 1800.f);
-        enemy2Status(arrEnemy2[i], xpos);
+        float ypos = 247.f;
+        enemy2Status(arrEnemy2[i], xpos, ypos);
     }
 
     for (int i = 0; i < numEnemy3; i++) {
         enemy3BulletStates(arrEnemy3Bullet[i]);
-        float sX = 1500.f + (i * 1200.f);
-        float sY = 150.f;
+        float sX = 10900.f + (i * 1200.f);
+        float sY = 190.f;
         enemy3States(arrEnemy3[i], sX, sY);
     }
 
@@ -536,6 +540,8 @@ int main()
 
 
                 for (int i = 0; i < numEnemy3; i++) {
+                    if(arrEnemy3[i].alive == false) arrEnemy3[i].enemySpr.setPosition(200000,200000);
+                    arrEnemy3[i].hitbox.setPosition(arrEnemy3[i].enemySpr.getPosition());
                     if (arrEnemy3[i].alive) {
                         arrEnemy3[i].hitbox.setPosition(arrEnemy3[i].enemySpr.getPosition());
                         enemy3Animation(arrEnemy3[i], playerst, dt);
@@ -636,11 +642,7 @@ int main()
             }
             if (event.key.code == Keyboard::C) 
             {
-                playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
-                playerst.hitbox.setPosition(playerst.megamanSpr.getPosition());
-                isPaused = false;
-                won = false;
-                playerst.health = 19;
+                resetMegaman(playerst);
             } //debugging
 
             if(isPaused && !won){
@@ -673,7 +675,7 @@ int main()
 int charSize = 20, xOffset = -100, yOffset = 270;
 
 //##Initializes main menu resources
-bool resourcesCheck(MenuData &m,winobj &winobject) {
+bool resourcesCheck(MenuData &mainMenu,winobj &winobject) {
     if (!map1.mapTexture.loadFromFile("textures/map.png")) {
     cout << "ERROR: Could not find textures/map.png" << endl;
         return false;
@@ -698,11 +700,11 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
     cout << "ERROR: Could not find textures/wingem.png" << endl;
         return false;
     }
-    if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
+    if (!mainMenu.Logo.loadFromFile("textures/logo.png") || !mainMenu.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
     }
-    if (!m.font.loadFromFile("fonts/mega-man-x.ttf")) {
+    if (!mainMenu.font.loadFromFile("fonts/mega-man-x.ttf")) {
         cout << "ERR : Font not found";
         return false;
     }
@@ -718,12 +720,12 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
         cout << "ERR : Car 2 not found";
         return false;
     }
-    m.XLogoSprite.setTexture(m.XLogo);
-    m.XLogoSprite.setPosition(320, 130);
-    m.XLogoSprite.setScale(1.5f, 1.5f);
-    m.logoSprite.setTexture(m.Logo);
-    m.logoSprite.setPosition(150, 130);
-    m.logoSprite.setScale(1.5f, 1.5f);
+    mainMenu.XLogoSprite.setTexture(mainMenu.XLogo);
+    mainMenu.XLogoSprite.setPosition(320, 130);
+    mainMenu.XLogoSprite.setScale(1.5f, 1.5f);
+    mainMenu.logoSprite.setTexture(mainMenu.Logo);
+    mainMenu.logoSprite.setPosition(150, 130);
+    mainMenu.logoSprite.setScale(1.5f, 1.5f);
 
     map1.mapSpr.setTexture(map1.mapTexture);
     map1.mapSpr.setPosition(200, 0);
@@ -746,113 +748,114 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
     return true;
 }
 //Initializes main menu (note: we pass width and height by value bc we are using them for a calculation, no need to mod them.)
-void initMenu(MenuData &m, float width, float height) {
+void initMenu(MenuData &mainMenu, float width, float height) {
     titlesmusic.setBuffer(titlebuffer);
     titlesmusic.play();
     titlesmusic.setLoop(true);
-    m.curMaxButtons = 3;
+    mainMenu.curMaxButtons = 3;
 
     //GAME START
-    m.menuSelection[0].setFont(m.font);
-    m.menuSelection[0].setFillColor(m.selectedColor);
-    m.menuSelection[0].setString("GAME START");
-    m.menuSelection[0].setCharacterSize(charSize);
-    m.menuSelection[0].setPosition(((width / 2)) + xOffset, (height / (MAX_ITEM_NO + 10) * 1) + yOffset);
+    mainMenu.menuSelection[0].setFont(mainMenu.font);
+    mainMenu.menuSelection[0].setFillColor(mainMenu.selectedColor);
+    mainMenu.menuSelection[0].setString("GAME START");
+    mainMenu.menuSelection[0].setCharacterSize(charSize);
+    mainMenu.menuSelection[0].setPosition(((width / 2)) + xOffset, (height / (MAX_ITEM_NO + 10) * 1) + yOffset);
 
     //OPTION MODE
-    m.menuSelection[1].setFont(m.font);
-    m.menuSelection[1].setFillColor(m.unselectedColor);
-    m.menuSelection[1].setString("OPTION MODE");
-    m.menuSelection[1].setCharacterSize(charSize);
-    m.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 2) + yOffset);
+    mainMenu.menuSelection[1].setFont(mainMenu.font);
+    mainMenu.menuSelection[1].setFillColor(mainMenu.unselectedColor);
+    mainMenu.menuSelection[1].setString("OPTION MODE");
+    mainMenu.menuSelection[1].setCharacterSize(charSize);
+    mainMenu.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 2) + yOffset);
 
     //TERMINATE
-    m.menuSelection[2].setFont(m.font);
-    m.menuSelection[2].setFillColor(m.unselectedColor);
-    m.menuSelection[2].setString("TERMINATE");
-    m.menuSelection[2].setCharacterSize(charSize);
-    m.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 3) + yOffset);
-    m.curButtonIndex = 0;
+    mainMenu.menuSelection[2].setFont(mainMenu.font);
+    mainMenu.menuSelection[2].setFillColor(mainMenu.unselectedColor);
+    mainMenu.menuSelection[2].setString("TERMINATE");
+    mainMenu.menuSelection[2].setCharacterSize(charSize);
+    mainMenu.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 3) + yOffset);
+    mainMenu.curButtonIndex = 0;
 }
 
 //Draws menu components to the window
-void drawMenuSelection(MenuData &m, RenderWindow &window) {
-    for (int i = 0; i < m.curMaxButtons; ++i) {
-        window.draw(m.menuSelection[i]);
+void drawMenuSelection(MenuData &mainMenu, RenderWindow &window) {
+    for (int i = 0; i < mainMenu.curMaxButtons; ++i) {
+        window.draw(mainMenu.menuSelection[i]);
     }
 }
 
 //Menu up button function
-void up(MenuData &m) {
-    m.menuSelection[m.curButtonIndex].setFillColor(m.unselectedColor);
-    m.curButtonIndex--;
-    if (m.curButtonIndex < 0) {
-        m.curButtonIndex = m.curMaxButtons - 1;
+void up(MenuData &mainMenu) {
+    mainMenu.menuSelection[mainMenu.curButtonIndex].setFillColor(mainMenu.unselectedColor);
+    mainMenu.curButtonIndex--;
+    if (mainMenu.curButtonIndex < 0) {
+        mainMenu.curButtonIndex = mainMenu.curMaxButtons - 1;
     }
-    m.menuSelection[m.curButtonIndex].setFillColor(m.selectedColor);
+    mainMenu.menuSelection[mainMenu.curButtonIndex].setFillColor(mainMenu.selectedColor);
 }
 
 //Menu down button function
-void down(MenuData &m) {
-    m.menuSelection[m.curButtonIndex].setFillColor(m.unselectedColor);
-    m.curButtonIndex++;
-    if (m.curButtonIndex >= m.curMaxButtons) {
-        m.curButtonIndex = 0;
+void down(MenuData &mainMenu) {
+    mainMenu.menuSelection[mainMenu.curButtonIndex].setFillColor(mainMenu.unselectedColor);
+    mainMenu.curButtonIndex++;
+    if (mainMenu.curButtonIndex >= mainMenu.curMaxButtons) {
+        mainMenu.curButtonIndex = 0;
     }
-    m.menuSelection[m.curButtonIndex].setFillColor(m.selectedColor);
+    mainMenu.menuSelection[mainMenu.curButtonIndex].setFillColor(mainMenu.selectedColor);
 }
 
 //Initializes options menu
-void initOptions(MenuData &m, float width, float height) {
+void initOptions(MenuData &mainMenu, float width, float height) {
     // we use initMenu to copy data from the menu struct and reuse it in options.
-    initMenu(m, width, height);
+    initMenu(mainMenu, width, height);
 
-    m.curMaxButtons = 2;
+    mainMenu.curMaxButtons = 2;
     //AUDIO
-    m.menuSelection[0].setString("AUDIO");
+    mainMenu.menuSelection[0].setString("AUDIO");
     //BACK
-    m.menuSelection[1].setString("BACK");
+    mainMenu.menuSelection[1].setString("BACK");
 
-    m.curButtonIndex = 0;
+    mainMenu.curButtonIndex = 0;
 }
 
-void initAudio(MenuData &m, float width, float height, float &musicVolume) {
+void initAudio(MenuData &mainMenu, float width, float height, float &musicVolume) {
     // we use initMenu to copy data from the menu struct and reuse it in options.
-    initMenu(m, width, height);
+    initMenu(mainMenu, width, height);
 
-    m.curMaxButtons = 2;
-    m.menuSelection[0].setString("MUSIC VOLUME : " + to_string((int)musicVolume));
+    mainMenu.curMaxButtons = 2;
+    mainMenu.menuSelection[0].setString("MUSIC VOLUME : " + to_string((int)musicVolume));
     //BACK
-    m.menuSelection[1].setString("BACK");
+    mainMenu.menuSelection[1].setString("BACK");
 
-    m.curButtonIndex = 0;
+    mainMenu.curButtonIndex = 0;
 }
 
 //main is a placeholder for mainmenu, options is a placeholder for options menu.
 //this function handles switching between menus and the game, it also handles the menu interraction button (Z in this case) for both menus and the game.
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton) {
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &mainMenu, MenuData &optionsMenu, MenuData &audioMenu, Keyboard::Key interractionButton) {
     if (event.type == Event::KeyPressed) {
-        switch (main.curState)
+        switch (mainMenu.curState)
         {
         case MAIN:
             if (event.key.code == Keyboard::Up) {
-                up(main);
+                up(mainMenu);
             }
             if (event.key.code == Keyboard::Down) {
-                down(main);
+                down(mainMenu);
             }
             if (event.key.code == interractionButton) {
-                if (main.curButtonIndex == 0) {
+                if (mainMenu.curButtonIndex == 0) {
                     titlesmusic.stop();
                     levelmusic.setBuffer(stagebuffer);
                     levelmusic.play();
                     levelmusic.setLoop(true);
-                    main.curState = GAME;
+                    resetMegaman(playerst);
+                    mainMenu.curState = GAME;
                 }
-                if (main.curButtonIndex == 1) {
-                    main.curState = OPTIONS;
+                if (mainMenu.curButtonIndex == 1) {
+                    mainMenu.curState = OPTIONS;
                 }
-                if (main.curButtonIndex == 2) {
+                if (mainMenu.curButtonIndex == 2) {
                     window.close();
                 }
             }
@@ -860,19 +863,19 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 
         case OPTIONS:
             if (event.key.code == Keyboard::Up) {
-                up(options);
+                up(optionsMenu);
             }
             if (event.key.code == Keyboard::Down) {
-                down(options);
+                down(optionsMenu);
             }
             if (event.key.code == interractionButton) {
-                if (options.curButtonIndex == 1) {
-                    main.curState = MAIN;
+                if (optionsMenu.curButtonIndex == 1) {
+                    mainMenu.curState = MAIN;
                 }
             }
             if (event.key.code == interractionButton) {
-                if (options.curButtonIndex == 0) {
-                    main.curState = AUDIO;
+                if (optionsMenu.curButtonIndex == 0) {
+                    mainMenu.curState = AUDIO;
                 }
             }
             break;
@@ -883,7 +886,7 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
                 titlesmusic.setBuffer(titlebuffer);
                 titlesmusic.play();
                 titlesmusic.setLoop(true);
-                main.curState = MAIN;
+                mainMenu.curState = MAIN;
             }
             break;
         
@@ -896,7 +899,7 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
             }
             if (event.key.code == interractionButton) {
                     if (audioMenu.curButtonIndex == 1) {
-                        main.curState = OPTIONS;
+                        mainMenu.curState = OPTIONS;
                     }
             }
             if(audioMenu.curButtonIndex == 0){
@@ -956,7 +959,7 @@ void playerBulletStates(bullet& prj)
     // due to this button resets the condition after every loob not the struct
 
 }
-void enemyStates(enemy1& arrEnemy1 ,float &xpos, float &ypos)
+void enemyStates(enemy1& arrEnemy1 ,float xpos, float ypos)
 {
     arrEnemy1.enemySpr.setPosition(xpos, ypos);
     arrEnemy1.enemyTexture.loadFromFile("textures/enemies_full2.png");
@@ -980,16 +983,16 @@ void enemyBulletStates(enemy1bullet& arrEnemy1Bullet)
     );
     arrEnemy1Bullet.enemyBulletSpr.setScale(2.0f, 2.0f); // 
 }
-void enemy2Status(enemy2& arrEnemy2, float xpos)
+void enemy2Status(enemy2& arrEnemy2, float xpos, float ypos)
 {
-    arrEnemy2.enemy2Spr.setPosition( xpos , 247.f );
+    arrEnemy2.enemy2Spr.setPosition( xpos , ypos );
     arrEnemy2.arrEnemy2Texture.loadFromFile("textures\\enemyr2(36x34).png");
     arrEnemy2.enemy2Spr.setTexture(arrEnemy2.arrEnemy2Texture); //assigning the texture to the sprite so that we can use it in the game loop
     arrEnemy2.enemy2Spr.setOrigin(arrEnemy2.framewidth/ 2.0f, arrEnemy2.frameheight / 2.0f);	
     arrEnemy2.enemy2Spr.setScale(2.0f, 2.0f);  
     arrEnemy2.hitbox.setSize(Vector2f(arrEnemy2.framewidth * 1.f, arrEnemy2.frameheight * 1.f));
     arrEnemy2.hitbox.setOrigin(arrEnemy2.framewidth * 0.5f, arrEnemy2.frameheight * 0.5f);
-    arrEnemy2.hitbox.setPosition(xpos, 247.f);
+    arrEnemy2.hitbox.setPosition(xpos, ypos);
     arrEnemy2.hitbox.setFillColor(Color::Transparent);
 }
 
@@ -1784,8 +1787,7 @@ void death_timer(player& playerst,float &dt){
     }
     else{
         playerst.death_timer=5.0f;
-        playerst.megamanSpr.setPosition(MegaSpawnX, MegaSpawnY);
-        playerst.health = 19;
+        resetMegaman(playerst);
         playerst.Vx = storedVx;
     }
     
@@ -1885,6 +1887,40 @@ void resetMegaman(player& playerst) {
     playerst.health = 19;
     isPaused = false;
     won = false;
+    winsound = true;
+    for (int i = 0; i < numEnemy1; i++) {
+        float xpos = 2000.f + (i * 2600.f);
+        float ypos = 170.f;
+        enemyStates(arrEnemy1[i], xpos, ypos);
+        arrEnemy1[i].Vy = 0.0f;
+        arrEnemy1[i].touchesground = true;
+        arrEnemy1[i].isActive = false;
+        arrEnemy1[i].alive = true;
+        arrEnemy1[i].hp = 10;
+        arrEnemy1[i].isInv = false;
+    }
+
+    for (int i = 0; i < numEnemy2; i++) {
+        float xpos2 = 1300.f + (i * 1800.f);
+        float ypos2 = 247.f;
+        enemy2Status(arrEnemy2[i], xpos2, ypos2);
+        
+        arrEnemy2[i].Vy = 0.0f;
+        arrEnemy2[i].touchesground = true;
+        arrEnemy2[i].isActive = false;
+        arrEnemy2[i].alive = true;
+        arrEnemy2[i].hp = 10;
+        arrEnemy2[i].isInv = false;
+    }
+    for(int i = 0; i < numEnemy3; i++) {
+        float xpos3 = 10900.f + (i * 1200.f);
+        float ypos3 = 190.f;
+        enemy3States(arrEnemy3[i], xpos3, ypos3);
+        arrEnemy3[i].isActive = false;
+        arrEnemy3[i].alive = true;
+        arrEnemy3[i].hp = 10;
+        arrEnemy3[i].isInv = false;
+    }
 }
 
 void volumeAdjustment(MenuData& audioMenu, float &musicVolume, float increaseAmount) {

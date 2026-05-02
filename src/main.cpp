@@ -9,8 +9,8 @@ using namespace std;
 using namespace sf;
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
-#define numEnemy2 2 // number of new enemies (the ones that move horizontally) in the game
-#define numEnemy1 2
+#define numEnemy1 2 // number of new enemies
+#define numEnemy2 2
 #define numEnemy3 2
 const float gravity = 1000.f;
 const int blocks = 100;
@@ -18,9 +18,7 @@ const float ratio_health=3.84;
 const float MegaSpawnX = 500.f;
 const float MegaSpawnY = 100.f;
 float musicVolume = 50.f;
-bool isPaused = false; 
-bool won = false;
-int enemyKilled[4] = {0}; // Enemies needed to kill to win the game
+int enemyKilled[6] = {0}; // Enemies needed to kill to win the game
 
 enum GameState { MAIN, OPTIONS, GAME, AUDIO};
 
@@ -73,7 +71,7 @@ struct MenuData {
     Texture Logo, XLogo;
     Sprite logoSprite, XLogoSprite;
     GameState curState = MAIN;
-};
+} mainMenu, optionsMenu, audioMenu;
 
 View camera(FloatRect(0, 0, windowWidth, windowHeight));
 View menuCamera(FloatRect(0, 0, windowWidth, windowHeight));
@@ -145,7 +143,7 @@ struct enemy2
     Sprite enemy2Spr;
     Texture arrEnemy2Texture;
     RectangleShape hitbox;
-    int framewidth = 36; 
+    int framewidth = 36; // each frame height and width don't ask how i calculated it 
     int frameheight = 35;
     int enemy2Index = 0;
     int hp = 10;
@@ -166,21 +164,21 @@ struct enemy3 {
     Texture enemyTexture;
     Sprite enemySpr;
     int hp = 5;
-    int framewidth = 45;  // Adjust these to the exact dimensions of image_97ad9c.png
-    int frameheight = 50; 
+    int framewidth = 36;
+    int frameheight = 42;
     int eIndex = 0;
     float invTimer = 0.25f;
     float detectionRange = 400.f;
     float timer = 0.0f;
     float frameduration = 0.1f;
-    float speed = 120.f; // Horizontal movement speed
+    float vx = 120.f; 
     bool isActive = false;
     bool isInv = false;
     bool alive = true;
     bool atFireFrame = false;
     bool goingForward = true;
     bool hasFired = false;
-} arrEnemy3[numEnemy3];
+    } arrEnemy3[numEnemy3];
 // ## enemy and player bullet struct
 struct bullet
 {
@@ -205,13 +203,15 @@ struct enemy1bullet
 
 
 }arrEnemy1Bullet;
+
 struct enemy3bullet {
     Texture enemyBulletTexture;
     Sprite enemyBulletSpr;
     RectangleShape hitbox;
-    float speed = 350.f; // Speed at which it falls down
+    float speed = 350.f;
     bool isthere = false;
-} arrEnemy3Bullet[numEnemy3];
+    bool touchesground = false;
+} arrEnemy3Bullet[numEnemy3]; 
 
 // ## map struct
 struct groundobj
@@ -238,15 +238,16 @@ int winY=315;
 // Function declarations (m is a menu struct variable, its passed by reference to avoid copying the struct and to allow us to mod the struct's data)
 
 //## Menu declaration functions (for main menu and options menu)
-void initMenu(MenuData &m, float width, float height);
-void initOptions(MenuData &m, float width, float height);
-void initAudio(MenuData &m, float width, float height, float &musicVolume);
-void drawMenuSelection(MenuData &m, RenderWindow &window);
-void up(MenuData &m);
-void down(MenuData &m);
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &m, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton);
+void initMenu(MenuData &mainMenu, float width, float height);
+void initOptions(MenuData &optionsMenu, float width, float height);
+void initAudio(MenuData &audioMenu, float width, float height, float &musicVolume);
+void drawMenuSelection(MenuData &mainMenu, RenderWindow &window);
+void up(MenuData &mainMenu);
+void down(MenuData &mainMenu);
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &mainMenu, MenuData &optionsMenu, MenuData &audioMenu, Keyboard::Key interractionButton);
 void volumeAdjustment(MenuData& audioMenu, float &musicVolume, float increaseAmount);
-bool resourcesCheck(MenuData &m,winobj &winobject);
+bool resourcesCheck(MenuData &mainMenu,winobj &winobject);
+void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
 /*NOTE : m IS A FORMAL PARAMETER, IT CAN BE CALLED ANYTHING, I JUST CHOSE M FOR MENU.
 THE NAMES OF THE PARAMETERS DO NOT AFFECT THE FUNCTIONALITY OF THE CODE, THEY ARE JUST PLACEHOLDERS TO MAKE THE CODE MORE READABLE.
@@ -257,11 +258,14 @@ NOTICE THAT THE INT MAIN FUNCTION CALLS ACTUALLY USE THE NAMES (ARGUMENTS) mainM
 // ## States functions
 void playerstats(player& playerst);
 void playerBulletStates(bullet& prj);
-void enemyStates(enemy1& arrEnemy1,float &xpos, float &ypos);
+void enemyStates(enemy1& arrEnemy1,float xpos, float ypos);
 void enemyBulletStates(enemy1bullet& arrEnemy1Bullet);
-void enemy2Status(enemy2& arrEnemy2, float &xpos2, float &ypos2);
-void enemy3States(enemy3& arrEnemy3, float &xpos, float &ypos);
+void enemy2Status(enemy2& arrEnemy2, float xpos, float ypos);
+void enemy3States(enemy3& arrEnemy3, float xpos, float ypos);
 void enemy3BulletStates(enemy3bullet& arrEnemy3Bullet);
+void enemy3Animation(enemy3& arrEnemy3, player& playerst, float &dt);
+void enemy3States(enemy3& arrEnemy3, float xpos, float ypos);
+void enemy3Shooting(enemy3bullet& arrEnemy3Bullet, enemy3& arrEnemy3, float& dt);
 
 // ## Animation functions
 void animationhandler(player& playerst, float dt);
@@ -273,7 +277,6 @@ void enemyAnimation(enemy1& arrEnemy1, float dt);
 void wallSlideAnim(player& playerst, float dt);
 void idleAnim(player& playerst, float dt);
 void enemy2Animation(enemy2& arrEnemy2, float dt);
-void enemy3Animation(enemy3& arrEnemy3, player& playerst, float dt);
 
 
 // ## bullet shooting and update
@@ -284,7 +287,6 @@ void enemy1BulletUpdate(player& playerst ,enemy1bullet& arrEnemy1Bullet , float 
 // ## enemies detection range
 void enemydetection(enemy1& arrEnemy1 , player& playerst);
 void enemy2Detection(enemy2& arrEnemy2, player& playerst ,float dr);
-
 // ## controls input
 void inputhandler(player& playerst, float dt );
 
@@ -302,6 +304,8 @@ void deathHandler(player& playerst, float &dt);
 void death_timer(player& playerst,float &dt);
 void damage (player& playerst);
 void heal (player& playerst);
+bool isPaused = false; 
+bool won = false;
 void health_blockout(player& playerst,RectangleShape& blackout);
 float storedVx = playerst.Vx; // for death functions
 
@@ -311,10 +315,12 @@ float storedVx = playerst.Vx; // for death functions
 void createBlock(int index, float x, float y, float width, float height);
 View aspectRatio(View view, float windowWidth, float windowHeight);
 void carMovement(Sprite& car, float carSpeed, float dt);
-void camBounds(float LeftOffset, float RightOffset, float UpOffset, float DownOffset);
 
-// ## Misc functions
+// ## reset function
 void resetMegaman(player& playerst);
+
+
+
 
 
 
@@ -349,19 +355,26 @@ int main()
     enemyBulletStates(arrEnemy1Bullet);
 
     for (int i = 0; i < nbullets; i++) {
-        playerBulletStates(windowmag[i]);//this set up all the empty bullets with all of the playerBulletStates intializations
+        playerBulletStates(windowmag[i]); //this set up all the empty bullets with all of the playerBulletStates intializations
     }
 
     for (int i = 0; i < numEnemy1; i++) {
         float xpos = 2000.f + (i * 2600.f);
-        float ypos = 170.f;
+        float ypos = 170;
         enemyStates(arrEnemy1[i], xpos, ypos);
     }
 
     for (int i = 0; i < numEnemy2; i++) {
-        float xpos2 = 1300.f + (i * 1800.f);
-        float ypos2 = 247.f;
-        enemy2Status(arrEnemy2[i], xpos2, ypos2);
+        float xpos = 1300.f + (i * 1800.f);
+        float ypos = 247.f;
+        enemy2Status(arrEnemy2[i], xpos, ypos);
+    }
+
+    for (int i = 0; i < numEnemy3; i++) {
+        enemy3BulletStates(arrEnemy3Bullet[i]);
+        float sX = 10900.f + (i * 1200.f);
+        float sY = 190.f;
+        enemy3States(arrEnemy3[i], sX, sY);
     }
 
     createBlock(0, 310, 380, 1490, 100);
@@ -525,6 +538,17 @@ int main()
                     enemy2Detection(arrEnemy2[i],playerst , dt);
                 }
 
+
+                for (int i = 0; i < numEnemy3; i++) {
+                    if(arrEnemy3[i].alive == false) arrEnemy3[i].enemySpr.setPosition(200000,200000);
+                    arrEnemy3[i].hitbox.setPosition(arrEnemy3[i].enemySpr.getPosition());
+                    if (arrEnemy3[i].alive) {
+                        arrEnemy3[i].hitbox.setPosition(arrEnemy3[i].enemySpr.getPosition());
+                        enemy3Animation(arrEnemy3[i], playerst, dt);
+                        enemy3Shooting(arrEnemy3Bullet[i], arrEnemy3[i], dt);
+                    }
+                }
+
                 bool IsFiring = playerBulletUpdate(windowmag, playerst, dt, window);
                 if(!playerst.moving && !IsFiring && playerst.touchesground){
                     idleAnim(playerst, dt);
@@ -589,6 +613,11 @@ int main()
                 }
             }
 
+            for(int i = 0; i < numEnemy3; i++) {
+                if (arrEnemy3Bullet[i].isthere) window.draw(arrEnemy3Bullet[i].enemyBulletSpr);
+                if (arrEnemy3[i].alive) window.draw(arrEnemy3[i].enemySpr);
+            }
+
             window.draw(playerst.megamanSpr);
             window.draw(playerst.hitbox);
             
@@ -646,7 +675,7 @@ int main()
 int charSize = 20, xOffset = -100, yOffset = 270;
 
 //##Initializes main menu resources
-bool resourcesCheck(MenuData &m,winobj &winobject) {
+bool resourcesCheck(MenuData &mainMenu,winobj &winobject) {
     if (!map1.mapTexture.loadFromFile("textures/map.png")) {
     cout << "ERROR: Could not find textures/map.png" << endl;
         return false;
@@ -671,11 +700,11 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
     cout << "ERROR: Could not find textures/wingem.png" << endl;
         return false;
     }
-    if (!m.Logo.loadFromFile("textures/logo.png") || !m.XLogo.loadFromFile("textures/XLogo.png")) {
+    if (!mainMenu.Logo.loadFromFile("textures/logo.png") || !mainMenu.XLogo.loadFromFile("textures/XLogo.png")) {
         cout << "ERR : Logo not found";
         return false;
     }
-    if (!m.font.loadFromFile("fonts/mega-man-x.ttf")) {
+    if (!mainMenu.font.loadFromFile("fonts/mega-man-x.ttf")) {
         cout << "ERR : Font not found";
         return false;
     }
@@ -691,12 +720,12 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
         cout << "ERR : Car 2 not found";
         return false;
     }
-    m.XLogoSprite.setTexture(m.XLogo);
-    m.XLogoSprite.setPosition(320, 130);
-    m.XLogoSprite.setScale(1.5f, 1.5f);
-    m.logoSprite.setTexture(m.Logo);
-    m.logoSprite.setPosition(150, 130);
-    m.logoSprite.setScale(1.5f, 1.5f);
+    mainMenu.XLogoSprite.setTexture(mainMenu.XLogo);
+    mainMenu.XLogoSprite.setPosition(320, 130);
+    mainMenu.XLogoSprite.setScale(1.5f, 1.5f);
+    mainMenu.logoSprite.setTexture(mainMenu.Logo);
+    mainMenu.logoSprite.setPosition(150, 130);
+    mainMenu.logoSprite.setScale(1.5f, 1.5f);
 
     map1.mapSpr.setTexture(map1.mapTexture);
     map1.mapSpr.setPosition(200, 0);
@@ -719,113 +748,114 @@ bool resourcesCheck(MenuData &m,winobj &winobject) {
     return true;
 }
 //Initializes main menu (note: we pass width and height by value bc we are using them for a calculation, no need to mod them.)
-void initMenu(MenuData &m, float width, float height) {
+void initMenu(MenuData &mainMenu, float width, float height) {
     titlesmusic.setBuffer(titlebuffer);
     titlesmusic.play();
     titlesmusic.setLoop(true);
-    m.curMaxButtons = 3;
+    mainMenu.curMaxButtons = 3;
 
     //GAME START
-    m.menuSelection[0].setFont(m.font);
-    m.menuSelection[0].setFillColor(m.selectedColor);
-    m.menuSelection[0].setString("GAME START");
-    m.menuSelection[0].setCharacterSize(charSize);
-    m.menuSelection[0].setPosition(((width / 2)) + xOffset, (height / (MAX_ITEM_NO + 10) * 1) + yOffset);
+    mainMenu.menuSelection[0].setFont(mainMenu.font);
+    mainMenu.menuSelection[0].setFillColor(mainMenu.selectedColor);
+    mainMenu.menuSelection[0].setString("GAME START");
+    mainMenu.menuSelection[0].setCharacterSize(charSize);
+    mainMenu.menuSelection[0].setPosition(((width / 2)) + xOffset, (height / (MAX_ITEM_NO + 10) * 1) + yOffset);
 
     //OPTION MODE
-    m.menuSelection[1].setFont(m.font);
-    m.menuSelection[1].setFillColor(m.unselectedColor);
-    m.menuSelection[1].setString("OPTION MODE");
-    m.menuSelection[1].setCharacterSize(charSize);
-    m.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 2) + yOffset);
+    mainMenu.menuSelection[1].setFont(mainMenu.font);
+    mainMenu.menuSelection[1].setFillColor(mainMenu.unselectedColor);
+    mainMenu.menuSelection[1].setString("OPTION MODE");
+    mainMenu.menuSelection[1].setCharacterSize(charSize);
+    mainMenu.menuSelection[1].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 2) + yOffset);
 
     //TERMINATE
-    m.menuSelection[2].setFont(m.font);
-    m.menuSelection[2].setFillColor(m.unselectedColor);
-    m.menuSelection[2].setString("TERMINATE");
-    m.menuSelection[2].setCharacterSize(charSize);
-    m.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 3) + yOffset);
-    m.curButtonIndex = 0;
+    mainMenu.menuSelection[2].setFont(mainMenu.font);
+    mainMenu.menuSelection[2].setFillColor(mainMenu.unselectedColor);
+    mainMenu.menuSelection[2].setString("TERMINATE");
+    mainMenu.menuSelection[2].setCharacterSize(charSize);
+    mainMenu.menuSelection[2].setPosition((width / 2) + xOffset, (height / (MAX_ITEM_NO + 10) * 3) + yOffset);
+    mainMenu.curButtonIndex = 0;
 }
 
 //Draws menu components to the window
-void drawMenuSelection(MenuData &m, RenderWindow &window) {
-    for (int i = 0; i < m.curMaxButtons; ++i) {
-        window.draw(m.menuSelection[i]);
+void drawMenuSelection(MenuData &mainMenu, RenderWindow &window) {
+    for (int i = 0; i < mainMenu.curMaxButtons; ++i) {
+        window.draw(mainMenu.menuSelection[i]);
     }
 }
 
 //Menu up button function
-void up(MenuData &m) {
-    m.menuSelection[m.curButtonIndex].setFillColor(m.unselectedColor);
-    m.curButtonIndex--;
-    if (m.curButtonIndex < 0) {
-        m.curButtonIndex = m.curMaxButtons - 1;
+void up(MenuData &mainMenu) {
+    mainMenu.menuSelection[mainMenu.curButtonIndex].setFillColor(mainMenu.unselectedColor);
+    mainMenu.curButtonIndex--;
+    if (mainMenu.curButtonIndex < 0) {
+        mainMenu.curButtonIndex = mainMenu.curMaxButtons - 1;
     }
-    m.menuSelection[m.curButtonIndex].setFillColor(m.selectedColor);
+    mainMenu.menuSelection[mainMenu.curButtonIndex].setFillColor(mainMenu.selectedColor);
 }
 
 //Menu down button function
-void down(MenuData &m) {
-    m.menuSelection[m.curButtonIndex].setFillColor(m.unselectedColor);
-    m.curButtonIndex++;
-    if (m.curButtonIndex >= m.curMaxButtons) {
-        m.curButtonIndex = 0;
+void down(MenuData &mainMenu) {
+    mainMenu.menuSelection[mainMenu.curButtonIndex].setFillColor(mainMenu.unselectedColor);
+    mainMenu.curButtonIndex++;
+    if (mainMenu.curButtonIndex >= mainMenu.curMaxButtons) {
+        mainMenu.curButtonIndex = 0;
     }
-    m.menuSelection[m.curButtonIndex].setFillColor(m.selectedColor);
+    mainMenu.menuSelection[mainMenu.curButtonIndex].setFillColor(mainMenu.selectedColor);
 }
 
 //Initializes options menu
-void initOptions(MenuData &m, float width, float height) {
+void initOptions(MenuData &mainMenu, float width, float height) {
     // we use initMenu to copy data from the menu struct and reuse it in options.
-    initMenu(m, width, height);
+    initMenu(mainMenu, width, height);
 
-    m.curMaxButtons = 2;
+    mainMenu.curMaxButtons = 2;
     //AUDIO
-    m.menuSelection[0].setString("AUDIO");
+    mainMenu.menuSelection[0].setString("AUDIO");
     //BACK
-    m.menuSelection[1].setString("BACK");
+    mainMenu.menuSelection[1].setString("BACK");
 
-    m.curButtonIndex = 0;
+    mainMenu.curButtonIndex = 0;
 }
 
-void initAudio(MenuData &m, float width, float height, float &musicVolume) {
+void initAudio(MenuData &mainMenu, float width, float height, float &musicVolume) {
     // we use initMenu to copy data from the menu struct and reuse it in options.
-    initMenu(m, width, height);
+    initMenu(mainMenu, width, height);
 
-    m.curMaxButtons = 2;
-    m.menuSelection[0].setString("MUSIC VOLUME : " + to_string((int)musicVolume));
+    mainMenu.curMaxButtons = 2;
+    mainMenu.menuSelection[0].setString("MUSIC VOLUME : " + to_string((int)musicVolume));
     //BACK
-    m.menuSelection[1].setString("BACK");
+    mainMenu.menuSelection[1].setString("BACK");
 
-    m.curButtonIndex = 0;
+    mainMenu.curButtonIndex = 0;
 }
 
 //main is a placeholder for mainmenu, options is a placeholder for options menu.
 //this function handles switching between menus and the game, it also handles the menu interraction button (Z in this case) for both menus and the game.
-void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuData &options, MenuData &audioMenu, Keyboard::Key interractionButton) {
+void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &mainMenu, MenuData &optionsMenu, MenuData &audioMenu, Keyboard::Key interractionButton) {
     if (event.type == Event::KeyPressed) {
-        switch (main.curState)
+        switch (mainMenu.curState)
         {
         case MAIN:
             if (event.key.code == Keyboard::Up) {
-                up(main);
+                up(mainMenu);
             }
             if (event.key.code == Keyboard::Down) {
-                down(main);
+                down(mainMenu);
             }
             if (event.key.code == interractionButton) {
-                if (main.curButtonIndex == 0) {
+                if (mainMenu.curButtonIndex == 0) {
                     titlesmusic.stop();
                     levelmusic.setBuffer(stagebuffer);
                     levelmusic.play();
                     levelmusic.setLoop(true);
-                    main.curState = GAME;
+                    resetMegaman(playerst);
+                    mainMenu.curState = GAME;
                 }
-                if (main.curButtonIndex == 1) {
-                    main.curState = OPTIONS;
+                if (mainMenu.curButtonIndex == 1) {
+                    mainMenu.curState = OPTIONS;
                 }
-                if (main.curButtonIndex == 2) {
+                if (mainMenu.curButtonIndex == 2) {
                     window.close();
                 }
             }
@@ -833,31 +863,30 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
 
         case OPTIONS:
             if (event.key.code == Keyboard::Up) {
-                up(options);
+                up(optionsMenu);
             }
             if (event.key.code == Keyboard::Down) {
-                down(options);
+                down(optionsMenu);
             }
             if (event.key.code == interractionButton) {
-                if (options.curButtonIndex == 1) {
-                    main.curState = MAIN;
+                if (optionsMenu.curButtonIndex == 1) {
+                    mainMenu.curState = MAIN;
                 }
             }
             if (event.key.code == interractionButton) {
-                if (options.curButtonIndex == 0) {
-                    main.curState = AUDIO;
+                if (optionsMenu.curButtonIndex == 0) {
+                    mainMenu.curState = AUDIO;
                 }
             }
             break;
 
             case GAME:
             if (event.key.code == Keyboard::X) {
-                resetMegaman(playerst);
                 levelmusic.stop();
                 titlesmusic.setBuffer(titlebuffer);
                 titlesmusic.play();
                 titlesmusic.setLoop(true);
-                main.curState = MAIN;
+                mainMenu.curState = MAIN;
             }
             break;
         
@@ -870,7 +899,7 @@ void menuSwitchHandler(RenderWindow &window, Event &event, MenuData &main, MenuD
             }
             if (event.key.code == interractionButton) {
                     if (audioMenu.curButtonIndex == 1) {
-                        main.curState = OPTIONS;
+                        mainMenu.curState = OPTIONS;
                     }
             }
             if(audioMenu.curButtonIndex == 0){
@@ -930,7 +959,7 @@ void playerBulletStates(bullet& prj)
     // due to this button resets the condition after every loob not the struct
 
 }
-void enemyStates(enemy1& arrEnemy1 ,float &xpos, float &ypos)
+void enemyStates(enemy1& arrEnemy1 ,float xpos, float ypos)
 {
     arrEnemy1.enemySpr.setPosition(xpos, ypos);
     arrEnemy1.enemyTexture.loadFromFile("textures/enemies_full2.png");
@@ -941,7 +970,7 @@ void enemyStates(enemy1& arrEnemy1 ,float &xpos, float &ypos)
     arrEnemy1.hitbox.setOrigin((arrEnemy1.framewidth * 2.2f) / 2.f,(arrEnemy1.frameheight * 2.2f) / 2.f);
     arrEnemy1.hitbox.setSize(Vector2f(arrEnemy1.framewidth * 2.2f, arrEnemy1.frameheight * 2.2f));
     
-    arrEnemy1.hitbox.setPosition(xpos, 170.f);
+    arrEnemy1.hitbox.setPosition(xpos, ypos);
     arrEnemy1.hitbox.setFillColor(Color::Transparent);
 }
 void enemyBulletStates(enemy1bullet& arrEnemy1Bullet)
@@ -954,47 +983,119 @@ void enemyBulletStates(enemy1bullet& arrEnemy1Bullet)
     );
     arrEnemy1Bullet.enemyBulletSpr.setScale(2.0f, 2.0f); // 
 }
-void enemy2Status(enemy2& arrEnemy2, float &xpos2, float &ypos2)
+void enemy2Status(enemy2& arrEnemy2, float xpos, float ypos)
 {
-    arrEnemy2.enemy2Spr.setPosition( xpos2 , ypos2 );
+    arrEnemy2.enemy2Spr.setPosition( xpos , ypos );
     arrEnemy2.arrEnemy2Texture.loadFromFile("textures\\enemyr2(36x34).png");
     arrEnemy2.enemy2Spr.setTexture(arrEnemy2.arrEnemy2Texture); //assigning the texture to the sprite so that we can use it in the game loop
     arrEnemy2.enemy2Spr.setOrigin(arrEnemy2.framewidth/ 2.0f, arrEnemy2.frameheight / 2.0f);	
     arrEnemy2.enemy2Spr.setScale(2.0f, 2.0f);  
     arrEnemy2.hitbox.setSize(Vector2f(arrEnemy2.framewidth * 1.f, arrEnemy2.frameheight * 1.f));
     arrEnemy2.hitbox.setOrigin(arrEnemy2.framewidth * 0.5f, arrEnemy2.frameheight * 0.5f);
-    arrEnemy2.hitbox.setPosition(xpos2, ypos2);
+    arrEnemy2.hitbox.setPosition(xpos, ypos);
     arrEnemy2.hitbox.setFillColor(Color::Transparent);
 }
+
 void enemy3States(enemy3& arrEnemy3, float xpos, float ypos) {
-    arrEnemy3.enemySpr.setPosition(xpos, ypos); // ypos remains constant!
-    
-    // Using the exact file you provided for the sprite sheet
-    arrEnemy3.enemyTexture.loadFromFile("textures/image_97ad9c.png"); 
+    arrEnemy3.enemySpr.setPosition(xpos, ypos); 
+    arrEnemy3.enemyTexture.loadFromFile("textures/enemy3.png");
     arrEnemy3.enemySpr.setTexture(arrEnemy3.enemyTexture);
-    
-    arrEnemy3.enemySpr.setOrigin(arrEnemy3.framewidth / 2.0f, arrEnemy3.frameheight / 2.0f);    
-    arrEnemy3.enemySpr.setScale(2.5f, 2.5f);  
-    arrEnemy3.enemySpr.setTextureRect(IntRect(0, 0, arrEnemy3.framewidth, arrEnemy3.frameheight));
-    
-    arrEnemy3.hitbox.setOrigin(arrEnemy3.framewidth, arrEnemy3.frameheight);
-    arrEnemy3.hitbox.setSize(Vector2f(arrEnemy3.framewidth * 2.f, arrEnemy3.frameheight * 2.f));
+    arrEnemy3.enemySpr.setOrigin(arrEnemy3.framewidth / 2.0f,
+    arrEnemy3.frameheight / 2.0f);
+    arrEnemy3.enemySpr.setScale(2.5f, 2.5f);
+    arrEnemy3.enemySpr.setTextureRect(IntRect(0, 0,
+    arrEnemy3.framewidth, arrEnemy3.frameheight));
+    arrEnemy3.hitbox.setOrigin(arrEnemy3.framewidth,
+    arrEnemy3.frameheight);
+    arrEnemy3.hitbox.setSize(Vector2f(arrEnemy3.framewidth * 2.f,
+    arrEnemy3.frameheight * 2.f));
     arrEnemy3.hitbox.setPosition(xpos, ypos);
     arrEnemy3.hitbox.setFillColor(Color::Transparent);
-    arrEnemy3.hitbox.setOutlineColor(Color::Magenta); // Distinct color for testing
+    arrEnemy3.hitbox.setOutlineColor(Color::Magenta);
     arrEnemy3.hitbox.setOutlineThickness(1.f);
-}   
+}
+
 void enemy3BulletStates(enemy3bullet& arrEnemy3Bullet) {
-    arrEnemy3Bullet.enemyBulletTexture.loadFromFile("textures/landmine.png"); // Create or link this texture
+    arrEnemy3Bullet.enemyBulletTexture.loadFromFile("textures/mines.png");
     arrEnemy3Bullet.enemyBulletSpr.setTexture(arrEnemy3Bullet.enemyBulletTexture);
-    arrEnemy3Bullet.enemyBulletSpr.setOrigin(arrEnemy3Bullet.enemyBulletTexture.getSize().x / 2.f, arrEnemy3Bullet.enemyBulletTexture.getSize().y / 2.f);
+    arrEnemy3Bullet.enemyBulletSpr.setOrigin(arrEnemy3Bullet.enemyBulletTexture.getSize().x / 2.f,
+    arrEnemy3Bullet.enemyBulletTexture.getSize().y / 2.f);
     arrEnemy3Bullet.enemyBulletSpr.setScale(2.0f, 2.0f);
-    
     arrEnemy3Bullet.hitbox.setSize(Vector2f(20.f, 20.f));
     arrEnemy3Bullet.hitbox.setFillColor(Color::Transparent);
 }
 
+void enemy3Animation(enemy3& arrEnemy3, player& playerst, float& dt) {
+    if (abs(playerst.megamanSpr.getPosition().x - arrEnemy3.enemySpr.getPosition().x) < arrEnemy3.detectionRange) arrEnemy3.isActive = true;
+    else arrEnemy3.isActive = false;
 
+    if (arrEnemy3.isActive) {
+    // Move towards the player horizontally
+    if (playerst.megamanSpr.getPosition().x > arrEnemy3.enemySpr.getPosition().x) {
+        arrEnemy3.enemySpr.move(arrEnemy3.vx * dt, 0); // Move right
+        arrEnemy3.enemySpr.setScale(-2.5f, 2.5f);
+    } 
+    else if (playerst.megamanSpr.getPosition().x < arrEnemy3.enemySpr.getPosition().x-1.f) {
+        arrEnemy3.enemySpr.move(-arrEnemy3.vx * dt, 0); // Move left
+        arrEnemy3.enemySpr.setScale(2.5f, 2.5f);
+    }
+
+    arrEnemy3.timer += dt;
+    if (arrEnemy3.timer >= arrEnemy3.frameduration) {
+        arrEnemy3.timer = 0;
+        if (arrEnemy3.goingForward) {
+            arrEnemy3.eIndex++;
+            if (arrEnemy3.eIndex >= 7) {
+                arrEnemy3.goingForward = false;
+                arrEnemy3.eIndex = 7;
+            }
+        } 
+        else {
+            arrEnemy3.eIndex--;
+            if (arrEnemy3.eIndex <= 0) { // Back to start
+                arrEnemy3.goingForward = true;
+                arrEnemy3.eIndex = 0;
+                arrEnemy3.hasFired = false; // Reset so it can drop a mine again
+            }
+        }
+    }
+        arrEnemy3.enemySpr.setTextureRect(IntRect(arrEnemy3.eIndex*arrEnemy3.framewidth, 0, arrEnemy3.framewidth,arrEnemy3.frameheight));
+    }
+}
+
+void enemy3Shooting(enemy3bullet& arrEnemy3Bullet, enemy3& arrEnemy3, float& dt) {
+    if (arrEnemy3.isActive) {
+        // Drop the mine specifically on frame 7
+        arrEnemy3.atFireFrame = (arrEnemy3.eIndex == 7);
+        if (!arrEnemy3Bullet.isthere && !arrEnemy3.hasFired && arrEnemy3.atFireFrame) {
+            arrEnemy3Bullet.isthere = true;
+            arrEnemy3.hasFired = true;
+            arrEnemy3Bullet.enemyBulletSpr.setPosition(arrEnemy3.enemySpr.getPosition().x, arrEnemy3.enemySpr.getPosition().y + 20.f);
+            arrEnemy3Bullet.hitbox.setPosition(arrEnemy3Bullet.enemyBulletSpr.getPosition());
+        }
+    }
+
+    // Bullet Falling and Ground Collision Logic
+    if (arrEnemy3Bullet.isthere) {
+        arrEnemy3Bullet.enemyBulletSpr.move(0,arrEnemy3Bullet.speed * dt);
+        arrEnemy3Bullet.hitbox.setPosition(arrEnemy3Bullet.enemyBulletSpr.getPosition());
+        bool touchesGround = false;
+
+        // Check if the mine hit any block in your ground array
+        for (int i = 0; i < blocks; i++) {
+            if (arrEnemy3Bullet.hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+                touchesGround = true;
+                break;
+            }
+        }
+
+        // If it touches the ground or falls out of the map
+        if (touchesGround || arrEnemy3Bullet.enemyBulletSpr.getPosition().y > windowHeight + 200) {
+            arrEnemy3Bullet.isthere = false;
+            arrEnemy3Bullet.enemyBulletSpr.setPosition(20000,20000);
+        }
+    }
+}
 
 // ## Animation functions
 void animationhandler(player& playerst, float dt)
@@ -1434,6 +1535,10 @@ void flickerEnemy2(int ind) {
     arrEnemy2[ind].enemy2Spr.setColor(Color(255,50,50,250));
 }
 
+void flickerEnemy3(int ind) {
+    auto curr = arrEnemy3[ind].enemySpr.getColor();
+    arrEnemy3[ind].enemySpr.setColor(Color(255,50,50,250));
+}
 
 void checkPlayerInvincibility(player& playerst,float &dt){
     // If the player got hit, he gets an invincibility frame and a flickering animation for 1 second
@@ -1480,6 +1585,22 @@ void checkEnemy2Invincibility(int ind, float &dt) {
         arrEnemy2[ind].enemy2Spr.setColor(Color(255,255,255,255));
         arrEnemy2[ind].isInv = false;
         arrEnemy2[ind].invTimer = 0.25f;
+    }
+}
+
+void checkEnemy3Invincibility(int ind, float &dt) {
+    // If the enemy got hit, he gets an invincibility frame and a reddening animation for 0.25 second
+    if (arrEnemy3[ind].isInv==true && arrEnemy3[ind].invTimer>=0)
+    {
+        int dt100 = dt*10000000;
+        int inv100 = arrEnemy3[ind].invTimer*10000000;
+        if (dt100 && (inv100/dt100)%8 == 0) flickerEnemy3(ind);
+        arrEnemy3[ind].invTimer-=dt;
+    }
+    else{
+        arrEnemy3[ind].enemySpr.setColor(Color(255,255,255,255));
+        arrEnemy3[ind].isInv = false;
+        arrEnemy3[ind].invTimer = 0.25f;
     }
 }
 
@@ -1535,6 +1656,15 @@ void handlePlayerIntersection(float &dt) {
   // With Enemy 2
   for (int i = 0; i < 2; i++) {
     if (playerst.hitbox.getGlobalBounds().intersects(arrEnemy2[i].hitbox.getGlobalBounds())) {
+        if (!playerst.isInv) {
+            playerst.health--;
+            playerst.isInv = true;
+        }
+    }
+  }
+  // With Enemy 3
+  for (int i = 0; i < 2; i++) {
+    if (playerst.hitbox.getGlobalBounds().intersects(arrEnemy3[i].hitbox.getGlobalBounds()) || playerst.hitbox.getGlobalBounds().intersects(arrEnemy3Bullet[i].enemyBulletSpr.getGlobalBounds())) {
         if (!playerst.isInv) {
             playerst.health--;
             playerst.isInv = true;
@@ -1608,14 +1738,43 @@ void handleEnemy2Intersection(float &dt) {
 
 }
 
+void handleEnemy3Intersection(float &dt) {
+  // Platfrom-Enemy bullet
+  for (int en = 0; en < 2; en++) {
+    checkEnemy3Invincibility(en, dt);
+    for(int i = 0; i < blocks ; i++)
+    {
+        if (arrEnemy3Bullet[en].hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+            // Ground-Enemy bullet: Set enemy bullet vy = 0
+            arrEnemy3Bullet[en].touchesground = true;
+        }
+    }
+
+    // Player's bullet-Enemy
+    for(int i = 0; i < 10; i++) { 
+        if (arrEnemy3[en].hitbox.getGlobalBounds().intersects(windowmag[i].bulletSpr.getGlobalBounds())) {
+            if (!arrEnemy3[en].isInv) {
+                arrEnemy3[en].hp--;
+                arrEnemy3[en].isInv = 1;
+                if (arrEnemy3[en].hp == 0) {
+                    arrEnemy3[en].alive = false;
+                    enemyKilled[en+4] = 1;
+                }
+            }
+        }
+    } 
+  }
+}
+
 void handleIntersection(float &dt) {
     handlePlayerIntersection(dt);
     handleEnemy1Intersection(dt);
     handleEnemy2Intersection(dt);
+    handleEnemy3Intersection(dt);
 }
 
 bool checkWin() {
-    for (int i = 0; i < 4; i++) if (!enemyKilled[i]) return false;
+    for (int i = 0; i < 6; i++) if (!enemyKilled[i]) return false;
     return true;
 }
 
@@ -1753,12 +1912,20 @@ void resetMegaman(player& playerst) {
         arrEnemy2[i].hp = 10;
         arrEnemy2[i].isInv = false;
     }
+    for(int i = 0; i < numEnemy3; i++) {
+        float xpos3 = 10900.f + (i * 1200.f);
+        float ypos3 = 190.f;
+        enemy3States(arrEnemy3[i], xpos3, ypos3);
+        arrEnemy3[i].isActive = false;
+        arrEnemy3[i].alive = true;
+        arrEnemy3[i].hp = 10;
+        arrEnemy3[i].isInv = false;
+    }
 }
 
 void volumeAdjustment(MenuData& audioMenu, float &musicVolume, float increaseAmount) {
         titlesmusic.setVolume(musicVolume);
         levelmusic.setVolume(musicVolume);
-        win.setVolume(musicVolume);
         musicVolume += increaseAmount;
             if (musicVolume > 100.0f) {
                 musicVolume = 100.0f;

@@ -9,8 +9,9 @@ using namespace std;
 using namespace sf;
 #define MAX_ITEM_NO 10
 #define nbullets 10// number of bullets that the window can show , not the magazine
-#define numEnemy2 2 // number of new enemies (the ones that move horizontally) in the game
-#define numEnemy1 2
+#define numEnemy1 2 // number of new enemies
+#define numEnemy2 2
+#define numEnemy3 2
 const float gravity = 1000.f;
 const int blocks = 100;
 const float ratio_health=3.84;
@@ -158,7 +159,26 @@ struct enemy2
     bool isActive = false;
 } arrEnemy2[numEnemy2];
 
-
+struct enemy3 {
+    RectangleShape hitbox;
+    Texture enemyTexture;
+    Sprite enemySpr;
+    int hp = 5;
+    int framewidth = 36;
+    int frameheight = 42;
+    int eIndex = 0;
+    float invTimer = 0.25f;
+    float detectionRange = 400.f;
+    float timer = 0.0f;
+    float frameduration = 0.1f;
+    float vx = 120.f; 
+    bool isActive = false;
+    bool isInv = false;
+    bool alive = true;
+    bool atFireFrame = false;
+    bool goingForward = true;
+    bool hasFired = false;
+    } arrEnemy3[numEnemy3];
 // ## enemy and player bullet struct
 struct bullet
 {
@@ -184,6 +204,13 @@ struct enemy1bullet
 
 }arrEnemy1Bullet;
 
+struct enemy3bullet {
+    Texture enemyBulletTexture;
+    Sprite enemyBulletSpr;
+    RectangleShape hitbox;
+    float speed = 350.f;
+    bool isthere = false;
+} arrEnemy3Bullet[numEnemy3]; 
 
 // ## map struct
 struct groundobj
@@ -233,7 +260,11 @@ void playerBulletStates(bullet& prj);
 void enemyStates(enemy1& arrEnemy1,float &xpos, float &ypos);
 void enemyBulletStates(enemy1bullet& arrEnemy1Bullet);
 void enemy2Status(enemy2& arrEnemy2, float xpos);
-
+void enemy3States(enemy3& arrEnemy3, float xpos, float ypos);
+void enemy3BulletStates(enemy3bullet& arrEnemy3Bullet);
+void enemy3Animation(enemy3& arrEnemy3, player& playerst, float &dt);
+void enemy3States(enemy3& arrEnemy3, float xpos, float ypos);
+void enemy3Shooting(enemy3bullet& arrEnemy3Bullet, enemy3& arrEnemy3, float& dt);
 
 // ## Animation functions
 void animationhandler(player& playerst, float dt);
@@ -320,7 +351,7 @@ int main()
     enemyBulletStates(arrEnemy1Bullet);
 
     for (int i = 0; i < nbullets; i++) {
-        playerBulletStates(windowmag[i]);//this set up all the empty bullets with all of the playerBulletStates intializations
+        playerBulletStates(windowmag[i]); //this set up all the empty bullets with all of the playerBulletStates intializations
     }
 
     for (int i = 0; i < numEnemy1; i++) {
@@ -332,6 +363,13 @@ int main()
     for (int i = 0; i < numEnemy2; i++) {
         float xpos = 1300.f + (i * 1800.f);
         enemy2Status(arrEnemy2[i], xpos);
+    }
+
+    for (int i = 0; i < numEnemy3; i++) {
+        enemy3BulletStates(arrEnemy3Bullet[i]);
+        float sX = 1500.f + (i * 1200.f);
+        float sY = 150.f;
+        enemy3States(arrEnemy3[i], sX, sY);
     }
 
     createBlock(0, 310, 380, 1490, 100);
@@ -495,6 +533,15 @@ int main()
                     enemy2Detection(arrEnemy2[i],playerst , dt);
                 }
 
+
+                for (int i = 0; i < numEnemy3; i++) {
+                    if (arrEnemy3[i].alive) {
+                        arrEnemy3[i].hitbox.setPosition(arrEnemy3[i].enemySpr.getPosition());
+                        enemy3Animation(arrEnemy3[i], playerst, dt);
+                        enemy3Shooting(arrEnemy3Bullet[i], arrEnemy3[i], dt);
+                    }
+                }
+
                 bool IsFiring = playerBulletUpdate(windowmag, playerst, dt, window);
                 if(!playerst.moving && !IsFiring && playerst.touchesground){
                     idleAnim(playerst, dt);
@@ -557,6 +604,11 @@ int main()
                     window.draw(arrEnemy2[i].hitbox); 
                     
                 }
+            }
+
+            for(int i = 0; i < numEnemy3; i++) {
+                // if (arrEnemy3Bullet[i].isthere) window.draw(arrEnemy3Bullet[i].enemyBulletSpr);
+                if (arrEnemy3[i].alive) window.draw(arrEnemy3[i].enemySpr);
             }
 
             window.draw(playerst.megamanSpr);
@@ -938,6 +990,107 @@ void enemy2Status(enemy2& arrEnemy2, float xpos)
     arrEnemy2.hitbox.setOrigin(arrEnemy2.framewidth * 0.5f, arrEnemy2.frameheight * 0.5f);
     arrEnemy2.hitbox.setPosition(xpos, 247.f);
     arrEnemy2.hitbox.setFillColor(Color::Transparent);
+}
+
+void enemy3States(enemy3& arrEnemy3, float xpos, float ypos) {
+    arrEnemy3.enemySpr.setPosition(xpos, ypos); 
+    arrEnemy3.enemyTexture.loadFromFile("textures/enemy3.png");
+    arrEnemy3.enemySpr.setTexture(arrEnemy3.enemyTexture);
+    arrEnemy3.enemySpr.setOrigin(arrEnemy3.framewidth / 2.0f,
+    arrEnemy3.frameheight / 2.0f);
+    arrEnemy3.enemySpr.setScale(2.5f, 2.5f);
+    arrEnemy3.enemySpr.setTextureRect(IntRect(0, 0,
+    arrEnemy3.framewidth, arrEnemy3.frameheight));
+    arrEnemy3.hitbox.setOrigin(arrEnemy3.framewidth,
+    arrEnemy3.frameheight);
+    arrEnemy3.hitbox.setSize(Vector2f(arrEnemy3.framewidth * 2.f,
+    arrEnemy3.frameheight * 2.f));
+    arrEnemy3.hitbox.setPosition(xpos, ypos);
+    arrEnemy3.hitbox.setFillColor(Color::Transparent);
+    arrEnemy3.hitbox.setOutlineColor(Color::Magenta);
+    arrEnemy3.hitbox.setOutlineThickness(1.f);
+}
+
+void enemy3BulletStates(enemy3bullet& arrEnemy3Bullet) {
+    arrEnemy3Bullet.enemyBulletTexture.loadFromFile("textures/mines.png");
+    arrEnemy3Bullet.enemyBulletSpr.setTexture(arrEnemy3Bullet.enemyBulletTexture);
+    arrEnemy3Bullet.enemyBulletSpr.setOrigin(arrEnemy3Bullet.enemyBulletTexture.getSize().x / 2.f,
+    arrEnemy3Bullet.enemyBulletTexture.getSize().y / 2.f);
+    arrEnemy3Bullet.enemyBulletSpr.setScale(2.0f, 2.0f);
+    arrEnemy3Bullet.hitbox.setSize(Vector2f(20.f, 20.f));
+    arrEnemy3Bullet.hitbox.setFillColor(Color::Transparent);
+}
+
+void enemy3Animation(enemy3& arrEnemy3, player& playerst, float& dt) {
+    if (abs(playerst.megamanSpr.getPosition().x - arrEnemy3.enemySpr.getPosition().x) < arrEnemy3.detectionRange) arrEnemy3.isActive = true;
+    else arrEnemy3.isActive = false;
+
+    if (arrEnemy3.isActive) {
+    // Move towards the player horizontally
+    if (playerst.megamanSpr.getPosition().x > arrEnemy3.enemySpr.getPosition().x) {
+        arrEnemy3.enemySpr.move(arrEnemy3.vx * dt, 0); // Move right
+        arrEnemy3.enemySpr.setScale(-2.5f, 2.5f);
+    } 
+    else if (playerst.megamanSpr.getPosition().x < arrEnemy3.enemySpr.getPosition().x-1.f) {
+        arrEnemy3.enemySpr.move(-arrEnemy3.vx * dt, 0); // Move left
+        arrEnemy3.enemySpr.setScale(2.5f, 2.5f);
+    }
+
+    arrEnemy3.timer += dt;
+    if (arrEnemy3.timer >= arrEnemy3.frameduration) {
+        arrEnemy3.timer = 0;
+        if (arrEnemy3.goingForward) {
+            arrEnemy3.eIndex++;
+            if (arrEnemy3.eIndex >= 7) {
+                arrEnemy3.goingForward = false;
+                arrEnemy3.eIndex = 7;
+            }
+        } 
+        else {
+            arrEnemy3.eIndex--;
+            if (arrEnemy3.eIndex <= 0) { // Back to start
+                arrEnemy3.goingForward = true;
+                arrEnemy3.eIndex = 0;
+                arrEnemy3.hasFired = false; // Reset so it can drop a mine again
+            }
+        }
+    }
+        arrEnemy3.enemySpr.setTextureRect(IntRect(arrEnemy3.eIndex*arrEnemy3.framewidth, 0, arrEnemy3.framewidth,arrEnemy3.frameheight));
+    }
+}
+
+void enemy3Shooting(enemy3bullet& arrEnemy3Bullet, enemy3& arrEnemy3, float& dt) {
+    if (arrEnemy3.isActive) {
+        // Drop the mine specifically on frame 7
+        arrEnemy3.atFireFrame = (arrEnemy3.eIndex == 7 &&arrEnemy3.goingForward);
+        if (!arrEnemy3Bullet.isthere && !arrEnemy3.hasFired && arrEnemy3.atFireFrame) {
+            arrEnemy3Bullet.isthere = true;
+            arrEnemy3.hasFired = true;
+            arrEnemy3Bullet.enemyBulletSpr.setPosition(arrEnemy3.enemySpr.getPosition().x, arrEnemy3.enemySpr.getPosition().y + 20.f);
+            arrEnemy3Bullet.hitbox.setPosition(arrEnemy3Bullet.enemyBulletSpr.getPosition());
+        }
+    }
+
+    // Bullet Falling and Ground Collision Logic
+    if (arrEnemy3Bullet.isthere) {
+        arrEnemy3Bullet.enemyBulletSpr.move(0,arrEnemy3Bullet.speed * dt);
+        arrEnemy3Bullet.hitbox.setPosition(arrEnemy3Bullet.enemyBulletSpr.getPosition());
+        bool touchesGround = false;
+
+        // Check if the mine hit any block in your ground array
+        for (int i = 0; i < blocks; i++) {
+            if (arrEnemy3Bullet.hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
+                touchesGround = true;
+                break;
+            }
+        }
+
+        // If it touches the ground or falls out of the map
+        if (touchesGround || arrEnemy3Bullet.enemyBulletSpr.getPosition().y > windowHeight + 200) {
+            arrEnemy3Bullet.isthere = false;
+            arrEnemy3Bullet.enemyBulletSpr.setPosition(20000,20000);
+        }
+    }
 }
 
 // ## Animation functions

@@ -1,3 +1,19 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
@@ -357,7 +373,7 @@ int main()
 
     for (int i = 0; i < numEnemy1; i++) {
         float xpos = 2000.f + (i * 2600.f);
-        float ypos = 170;
+        float ypos = 350;
         enemyStates(arrEnemy1[i], xpos, ypos);
     }
 
@@ -958,7 +974,7 @@ void playerBulletStates(bullet& prj)
 }
 void enemyStates(enemy1& arrEnemy1 ,float &xpos, float &ypos)
 {
-    arrEnemy1.enemySpr.setPosition(xpos, ypos);
+    arrEnemy1.enemySpr.setPosition(xpos, 170.f);
     arrEnemy1.enemyTexture.loadFromFile("textures/enemies_full2.png");
     arrEnemy1.enemySpr.setTexture(arrEnemy1.enemyTexture); //assigning the texture to the sprite so that we can use it in the game loop
     arrEnemy1.enemySpr.setOrigin(arrEnemy1.framewidth/ 2.0f, arrEnemy1.frameheight / 2.0f);	
@@ -967,7 +983,7 @@ void enemyStates(enemy1& arrEnemy1 ,float &xpos, float &ypos)
     arrEnemy1.hitbox.setOrigin((arrEnemy1.framewidth * 2.2f) / 2.f,(arrEnemy1.frameheight * 2.2f) / 2.f);
     arrEnemy1.hitbox.setSize(Vector2f(arrEnemy1.framewidth * 2.2f, arrEnemy1.frameheight * 2.2f));
     
-    arrEnemy1.hitbox.setPosition(xpos, ypos);
+    arrEnemy1.hitbox.setPosition(xpos, 170.f);
     arrEnemy1.hitbox.setFillColor(Color::Transparent);
 }
 void enemyBulletStates(enemy1bullet& arrEnemy1Bullet)
@@ -1514,6 +1530,8 @@ void Gravity(player& playerst, float &dt)
     else arrEnemy1[i].Vy = 0;
     if (!arrEnemy2[i].touchesground) arrEnemy2[i].Vy += gravity*dt;
     else arrEnemy2[i].Vy = 0;
+    if (arrEnemy3Bullet[i].touchesground) arrEnemy3Bullet[i].speed += gravity*dt;
+    else arrEnemy3Bullet[i].speed = 0;
   }
 };
 
@@ -1532,10 +1550,6 @@ void flickerEnemy2(int ind) {
     arrEnemy2[ind].enemy2Spr.setColor(Color(255,50,50,250));
 }
 
-void flickerEnemy3(int ind) {
-    auto curr = arrEnemy3[ind].enemySpr.getColor();
-    arrEnemy3[ind].enemySpr.setColor(Color(255,50,50,250));
-}
 
 void checkPlayerInvincibility(player& playerst,float &dt){
     // If the player got hit, he gets an invincibility frame and a flickering animation for 1 second
@@ -1582,22 +1596,6 @@ void checkEnemy2Invincibility(int ind, float &dt) {
         arrEnemy2[ind].enemy2Spr.setColor(Color(255,255,255,255));
         arrEnemy2[ind].isInv = false;
         arrEnemy2[ind].invTimer = 0.25f;
-    }
-}
-
-void checkEnemy3Invincibility(int ind, float &dt) {
-    // If the enemy got hit, he gets an invincibility frame and a reddening animation for 0.25 second
-    if (arrEnemy3[ind].isInv==true && arrEnemy3[ind].invTimer>=0)
-    {
-        int dt100 = dt*10000000;
-        int inv100 = arrEnemy3[ind].invTimer*10000000;
-        if (dt100 && (inv100/dt100)%8 == 0) flickerEnemy3(ind);
-        arrEnemy3[ind].invTimer-=dt;
-    }
-    else{
-        arrEnemy3[ind].enemySpr.setColor(Color(255,255,255,255));
-        arrEnemy3[ind].isInv = false;
-        arrEnemy3[ind].invTimer = 0.25f;
     }
 }
 
@@ -1738,11 +1736,12 @@ void handleEnemy2Intersection(float &dt) {
 void handleEnemy3Intersection(float &dt) {
   // Platfrom-Enemy bullet
   for (int en = 0; en < 2; en++) {
-    checkEnemy3Invincibility(en, dt);
+    arrEnemy1[en].touchesground = false;
+    checkEnemy1Invincibility(en, dt);
     for(int i = 0; i < blocks ; i++)
     {
         if (arrEnemy3Bullet[en].hitbox.getGlobalBounds().intersects(ground[i].gnd.getGlobalBounds())) {
-            // Ground-Enemy bullet: Set enemy bullet vy = 0
+            // Ground-Enemy: Set enemy vy = 0
             arrEnemy3Bullet[en].touchesground = true;
         }
     }
@@ -1771,7 +1770,7 @@ void handleIntersection(float &dt) {
 }
 
 bool checkWin() {
-    for (int i = 0; i < 6; i++) if (!enemyKilled[i]) return false;
+    for (int i = 0; i < 4; i++) if (!enemyKilled[i]) return false;
     return true;
 }
 
